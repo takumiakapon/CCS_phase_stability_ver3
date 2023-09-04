@@ -3,6 +3,7 @@ module mod_main_calc
     use mod_condition
     use mod_cubic_eq_d
     use mod_input
+    use mod_fugacity
 
     implicit none
 
@@ -22,9 +23,15 @@ module mod_main_calc
         type(diffs),pointer::P(:),V(:),lnk1(:),lnk2(:),lnk3(:),lnk4(:),Nc1(:),Nc2(:),Nc3(:),Nc4(:),Nc5(:),Nc6(:),Nc7(:)
         type(diffs),pointer::Nc8(:),Nc9(:),Nc10(:),Nc11(:),Nc12(:),Nc13(:),Nc14(:),Nm1(:),Nm2(:),Nm3(:),Nm4(:),Nm5(:),Pb
         real(8),allocatable,dimension(:)::x0,kakuninn
+        real(8)::kaku
 
         !!
-        type(diffs)::lnk(com_2phase,n),Nc(com_2phase+com_ion,n),Nm(com_mine,n)
+        real(8)::z_factor0(n),v_L2(n),v_L3(n),v_L4(n)
+        type(diffs)::lnk(com_2phase,n),Nc(com_2phase+com_ion,n),Nm(com_mine,n),Nt(n),z(com_2phase+com_ion,n),rach(n)
+        type(diffs)::kakuninnnnnn(com_2phase+com_ion),x(com_2phase+com_ion,n),y(com_2phase,n),k(com_2phase,n)
+        type(diffs)::lnfai_L(com_2phase,n),lnfai_V(com_2phase,n),z_factor(n),v_L1(n),MV_V(n),MD_V(n)
+        type(diffs)::v_L(com_2phase+com_ion,n),MV_L(n),MD_L(n),Sw(n),Sg(n),L(n)
+        
 
         allocate(x0(n*eq+q_judge))
 
@@ -121,11 +128,123 @@ module mod_main_calc
             Nm(3,i)=Nm3(i)
             Nm(4,i)=Nm4(i)
             Nm(5,i)=Nm5(i)
+            do j=1,com_2phase
+                k(j,i) = exp(lnk(j,i))
+            end do
         end do
 
+        !!rachford-rice
+        !#TODO相の数で判断するか否か
+        do i=1,n
+            call residualvectorset3(n*eq+q_judge,Nt(i))
+            do j=1,com_2phase+com_ion
+                Nt(i) = Nt(i) + Nc(j,i)
+            end do
+            do j=1,com_2phase+com_ion
+                z(j,i) = Nc(j,i) /Nt(i)
+            end do
+            call residualvectorset3(n*eq+q_judge,rach(i))
+            do j=1,com_2phase
+                rach(i) = rach(i) +(1.0d0-k(j,i))*z(j,i)/(1.0d0-V(i)+V(i)*k(j,i))
+            end do
+        end do
+        !do j=1,com_2phase+com_ion
+        !    kakuninnnnnn(j) = z(j,1)
+        !end do
+        !call outxs(kakuninnnnnn,kakuninn)
+        !write(*,*) kakuninn
+
+        !!モル分率----------------------
+        do i=1,n
+            if (phase_judge(i) == 2) then
+                do j=1,com_2phase
+                    x(j,i) = z(j,i)/(1.0d0-V(i)+V(i)*k(j,i))
+                    y(j,i) = x(j,i)*k(j,i)
+                end do
+                do j=com_2phase+1,com_2phase+com_ion
+                    x(j,i) = z(j,i)/(1.0d0-V(i))
+                end do
+            else
+                do j=1,com_2phase
+                    call residualvectorset3(n*eq+q_judge,y(j,i))
+                end do
+                do j=1,com_2phase+com_ion
+                    x(j,i) = z(j,i)
+                end do
+            end if
+        end do
+        !do j=1,com_2phase+com_ion
+        !    kakuninnnnnn(j) = x(j,1)
+        !end do
+        !call outxs(kakuninnnnnn,kakuninn)
+        !write(*,*) kakuninn
+
+        !!フガシティ
+        call vapor_fugacity_main(y,lnfai_V,P,z_factor0,z_factor,q_judge,phase_judge)
+        call liquid_fugacity_main(lnfai_L,P,v_L1,v_L2,v_L3,v_L4)
+
+
+        
+        !!モル密度、体積
+        !?気相
+        do i=1,n
+            if (phase_judge(i) == 2) then
+                MD_V(i) = P(i)/z_factor(i)/R/temp
+                MV_V(i) = 1.0d0/MD_V(i)
+            else
+                call residualvectorset3(n*eq+q_judge,MD_V(i))
+                call residualvectorset3(n*eq+q_judge,MV_V(i))
+            end if
+        end do
+        !?液相
+        do i=1,n
+            v_L(1,i) = v_L1(i)
+            call residualvectorset4(v_L2(i),n*eq+q_judge,v_L(2,i))
+            call residualvectorset4(v_L3(i),n*eq+q_judge,v_L(3,i))
+            call residualvectorset4(v_L4(i),n*eq+q_judge,v_L(4,i)) 
+            do j=com_2phase+1,com_2phase+com_ion
+                call residualvectorset3(n*eq+q_judge,v_L(j,i))!!要検討====================
+            end do
+            call residualvectorset3(n*eq+q_judge,MV_L(i))
+            do j=1,com_2phase+com_ion
+                MV_L(i) = MV_L(i) + x(j,i)*v_L(j,i)
+            end do
+            MD_L(i) = 1.0d0/MV_L(i)
+        end do
+
+        !call outxs(MD_V,kakuninn)
+        !write(*,*) kakuninn
+
+
+        !!飽和率の算出
+        do i=1,n
+            L(i)=1.0d0-V(i)
+            Sw(i)=Nt(i)*L(i)*MV_L(i)
+            if(phase_judge(i) == 2) then
+                Sg(i)=Nt(i)*V(i)*MV_V(i)
+            else
+                call residualvectorset3(n*eq+q_judge,Sg(i))
+            end if
+        end do
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
         do i=1,n
             do j=1,com_2phase
-                g(i*eq-eq+j)=lnk(j,i)!+lnfai_V(j,i)-lnfai_L(j,i)
+                g(i*eq-eq+j)=lnk(j,i)+lnfai_V(j,i)-lnfai_L(j,i)
             end do
             do j=1,com_2phase+com_ion
                 g(i*eq-eq+j+com_2phase)=Nc(j,i)
@@ -136,7 +255,7 @@ module mod_main_calc
 
             
             g(i*eq-1)=P(i)!Sw(i)+Sg(i)-1.0d0
-            g(i*eq)=V(i)
+            g(i*eq)=rach(i)
         end do
 
         !!流量制御
@@ -144,6 +263,8 @@ module mod_main_calc
             g(n*eq+q_judge) = Pb
         end if
 
+        call outxs(rach,kakuninn)
+        write(*,*) kakuninn
         
     end subroutine
 

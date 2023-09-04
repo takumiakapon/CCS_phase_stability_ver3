@@ -10,10 +10,10 @@ module mod_ini_chemical
     
     contains
     
-    subroutine ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,chemi_mat,phase_judge0,z0,theta0,g)
+    subroutine ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,chemi_mat,phase_judge0,z0,theta0,z_factor0,g)
         implicit none
         integer,intent(in)::phase_judge0
-        real(8),intent(inout)::P0,P0old,V0,Sw0
+        real(8),intent(inout)::P0,P0old,V0,Sw0,z_factor0
         real(8),intent(inout),dimension(com_2phase)::lnk0
         real(8),intent(inout),dimension(com_2phase+com_ion)::Nc0,Nc0old
         real(8),intent(inout),allocatable,dimension(:)::z0
@@ -25,7 +25,7 @@ module mod_ini_chemical
         type(diffs),pointer::P,Nc(:),lnk(:),V,Nm(:)
         real(8),allocatable,dimension(:)::x0
         
-        real(8)::k0(com_2phase),z_factor0,v_L2,v_L3,v_L4,Sw00,Sg00,faimineold,faiold
+        real(8)::k0(com_2phase),v_L2,v_L3,v_L4,Sw00,Sg00,faimineold,faiold
         real(8),allocatable,dimension(:)::kakuninn,w0
         
         

@@ -283,7 +283,7 @@ program main
             write(11,*) 'day',time
             do iteration =1,100
                 write(11,*) iteration
-                call ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,chemi_mat,phase_judge0,z0,theta0,fxs)
+                call ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,chemi_mat,phase_judge0,z0,theta0,z_factor0,fxs)
                 call jacobian_mat(fxs,emat)
                 call outxs(fxs,fmat)
                 fmat = -fmat
@@ -370,6 +370,7 @@ program main
     !write(*,*) Nc0
     write(14,*) phase_judge0,'phases'
     write(14,*) P0,'pressure'
+    write(14,*) 'z_factor:',z_factor0
     write(14,*) 'V0',V0,'Sw',Sw0
     write(14,*) 'Nc','z'
     do i=1,com_2phase+com_ion
@@ -574,6 +575,7 @@ program main
 
         !?visual studio communityだと謎にヒープが壊れてしまい、全く回らないので、とりあえずcodeで進める。
         !?mainの流動計算の自動微分の設定まで終わった
+
         
     end do
     
