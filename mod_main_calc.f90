@@ -26,11 +26,16 @@ module mod_main_calc
         real(8)::kaku
 
         !!
-        real(8)::z_factor0(n),v_L2(n),v_L3(n),v_L4(n)
+        real(8)::z_factor0(n),v_L2(n),v_L3(n),v_L4(n),Mw(com_2phase+com_ion)
         type(diffs)::lnk(com_2phase,n),Nc(com_2phase+com_ion,n),Nm(com_mine,n),Nt(n),z(com_2phase+com_ion,n),rach(n)
         type(diffs)::kakuninnnnnn(com_2phase+com_ion),x(com_2phase+com_ion,n),y(com_2phase,n),k(com_2phase,n)
         type(diffs)::lnfai_L(com_2phase,n),lnfai_V(com_2phase,n),z_factor(n),v_L1(n),MV_V(n),MD_V(n)
-        type(diffs)::v_L(com_2phase+com_ion,n),MV_L(n),MD_L(n),Sw(n),Sg(n),L(n)
+        type(diffs)::v_L(com_2phase+com_ion,n),MV_L(n),MD_L(n),Sw(n),Sg(n),L(n),Mw_ave_L(n),Mw_ave_V(n)
+        type(diffs)::phase_d_L(n),phase_d_V(n)
+
+        real(8)::beta_v,myu_H2O_20,sa,sisuu,myu_L_normal,Vc(com_2phase),Tc(com_2phase),Pc(com_2phase),myu_c(com_2phase)
+        real(8)::av_0,av_1,av_2,av_3,av_4
+        type(diffs)::myu_L(n),Pc_ave_V(n),Tc_ave_V(n),Vc_ave_V(n),zeta(n),ro_r_V(n),myu_V_SC(n),myu_V(n)
         
 
         allocate(x0(n*eq+q_judge))
@@ -227,7 +232,117 @@ module mod_main_calc
             end if
         end do
         
+        !!相質量密度[kg/m^3]
+        Mw(1)=18.01528d0 !モル質量[g/mol]
+        Mw(2)=44.01d0
+        Mw(3)=16.04d0
+        Mw(4)=32.082d0
+        Mw(5)=1.0079d0
+        Mw(6)=61.0171d0
+        Mw(7)=60.00092d0
+        Mw(8)=17.0073d0
+        Mw(9)=40.078d0
+        Mw(10)=24.0d0
+        Mw(11)=60.0d0
+        Mw(12)=28.9799d0
+        Mw(13)=33.0735d0
+        Mw(14)=32.07d0
 
+        do i=1,n
+            call residualvectorset3(n*eq+q_judge,Mw_ave_L(i))
+            call residualvectorset3(n*eq+q_judge,Mw_ave_V(i))
+            do j=1,com_2phase+com_ion
+                Mw_ave_L(i)=Mw_ave_L(i)+Mw(i)*x(j,i)
+            end do
+            do j=1,com_2phase
+                Mw_ave_V(i)=Mw_ave_V(i)+Mw(i)+y(j,i)
+            end do
+            phase_d_L(i)=Mw_ave_L(i)*MD_L(i)*10.0d0**(-3.0d0) ![kg/m^3]
+            phase_d_V(i)=Mw_ave_V(i)*MD_V(i)*10.0d0**(-3.0d0)
+        end do
+
+        !!相粘度
+        !?液相
+        beta_v=-1.297d0+(0.574*10.0d0**(-1.0d0))*(temp-273.15)-(0.697d0*10.0d0**(-3.0d0))*(temp-273.15)**2.0d0+&
+            (0.447d0*10.0d0**(-5.0d0))*(temp-273.15)**3.0d0-(0.105d0*10.0d0**(-7.0d0))*(temp-273.15)**4.0d0 ![1/GPa]
+        myu_H2O_20=1002.d0 !20[℃] ![μPa・s]
+        sa=20.0d0+273.15d0-temp
+        sisuu=(sa*(1.2378d0-(1.303d0*10.0d0**(-3.0d0))*sa+&
+            (3.06d0*10.0d0**(-6.0d0))*sa**2.0d0+&
+            (2.55d0*10.0d0**(-8.0d0))*sa**3.0d0)/(96.0d0+temp-273.15d0))
+        myu_L_normal=myu_H2O_20*10.0d0**sisuu ![μPa・s]
+        do i=1,n
+            myu_L(i)=(myu_L_normal*10.0d0**(-6.0d0))*(1.0d0+beta_v*(P(i)*10.0d0**(-9.0d0))) ![Pa・s]
+        end do
+
+        !?気相
+        !vc臨界体積[m^3/mol],1:H2O
+        Vc(1)=56.3d0*10.0d0**(-6.0d0)
+        Vc(2)=94.0d0*10.0d0**(-6.0d0)
+        Vc(3)=99.0d0*10.0d0**(-6.0d0)
+        Vc(4)=98.5d0*10.0d0**(-6.0d0)
+        Tc(1) = 647.30d0
+        Tc(2) = 304.2d0
+        Tc(3) = 190.6d0
+        Tc(4) = 373.2d0
+        Pc(1) = 217.6d0 * 101325.d0
+        Pc(2) = 72.8d0 * 101325.d0
+        Pc(3) = 45.4d0 * 101325.d0
+        Pc(4) = 88.2d0 * 101325.d0
+        
+        do i=1,n
+            call residualvectorset3(n*eq+q_judge,Pc_ave_V(i))
+            call residualvectorset3(n*eq+q_judge,Tc_ave_V(i))
+            call residualvectorset3(n*eq+q_judge,Vc_ave_V(i))
+            if (phase_judge(i) == 2) then
+                do j=1,com_2phase
+                    Pc_ave_V(i)=Pc_ave_V(i)+Pc(j)/101325.0d0*y(j,i) ![Pa→atm]
+                    Tc_ave_V(i)=Tc_ave_V(i)+Tc(j)*y(j,i) ![K]
+                    Vc_ave_V(i)=Vc_ave_V(i)+Vc(j)*y(j,i) ![m^3/mol]
+                end do
+                zeta(i)=Tc_ave_V(i)**(1.0d0/6.0d0)/((Mw_ave_V(i)**(1.0d0/2.0d0))*(Pc_ave_V(i)**(2.0d0/3.0d0)))
+                ro_r_V(i)=MD_V(i)*Vc_ave_V(i)
+            else
+                call residualvectorset3(n*eq+q_judge,zeta(i))
+                call residualvectorset3(n*eq+q_judge,ro_r_V(i))
+            end if
+        end do
+
+        do i=1,com_2phase
+            myu_c(i)=sqrt(Mw(i))*(Pc(i)/101325.d0)**(2.0d0/3.0d0)/(Tc(i)**(1.0d0/6.0d0))*(4.610d0*(temp/Tc(i))**0.618d0-&
+                    2.04d0*exp(-0.449d0*(temp/Tc(i)))+1.94d0*exp(-4.058d0*(temp/Tc(i)))+0.1d0)*10.0d0**(-4.0d0) ![cP]
+        end do
+        !write(*,*) myu_c
+
+        do i=1,n
+            if (phase_judge(i) == 2) then
+                !myu_V_SC(i)=(y(1,i)*myu_c(1)*sqrt(Mw(1))+y(2,i)*myu_c(2)*sqrt(Mw(2)))/&
+                !            (y(1,i)*sqrt(Mw(1))+y(2,i)*sqrt(Mw(2))) ![cP]
+                myu_V_SC(i)=(y(1,i)*myu_c(1)*sqrt(Mw(1))+y(2,i)*myu_c(2)*sqrt(Mw(2))&
+                            +y(3,i)*myu_c(3)*sqrt(Mw(3))+y(4,i)*myu_c(4)*sqrt(Mw(4)))/&
+                            (y(1,i)*sqrt(Mw(1))+y(2,i)*sqrt(Mw(2))+y(3,i)*sqrt(Mw(3))+y(4,i)*sqrt(Mw(4))) ![cP]
+            else
+                call residualvectorset3(n*eq+q_judge,myu_V_SC(i))
+            end if
+        end do
+
+        av_0=1.0230d0*10.0d0**(-1.0d0)
+        av_1=2.3364d0*10.0d0**(-2.0d0)
+        av_2=5.8533d0*10.0d0**(-2.0d0)
+        av_3=-4.0758d0*10.0d0**(-2.0d0)
+        av_4=9.3324d0*10.0d0**(-3.0d0)
+
+        do i=1,n
+            if (phase_judge(i) == 2) then
+                myu_V(i)=(myu_V_SC(i)+(((av_0+av_1*ro_r_V(i)+av_2*ro_r_V(i)**2.0d0+av_3*ro_r_V(i)**3.0d0+&
+                         av_4*ro_r_V(i)**4.0d0)**4.0d0-10.0d0**(-4.0d0))/zeta(i)))*10.0d0**(-3.0d0) !cP→Pa・s
+            else
+                call residualvectorset3(n*eq+q_judge,myu_V(i))
+            end if
+        end do
+        
+        call outxs(myu_L,kakuninn)
+        write(*,*) kakuninn!!粘度よさそう
 
 
 
