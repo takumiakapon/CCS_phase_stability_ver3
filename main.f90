@@ -21,7 +21,7 @@ program main
     implicit none
     
     !!初期計算用
-    integer::i,j,iteration,time,phase_judge0,phase,ii,year,q_judge
+    integer::i,j,iteration,time,phase_judge0,phase0,ii,year,q_judge
     real(8),allocatable,dimension(:,:)::amat,cmat,emat,gmat
     real(8),allocatable,dimension(:)::bmat,z0,k0,lnk0,x0,y0,w0,alpha0,dmat,fmat,hmat,theta0
     real(8)::V0,L0,P0,P0old,error,wt,lumda,z_factor0
@@ -34,12 +34,13 @@ program main
     real(8),allocatable,dimension(:,:)::chemi_mat
     
     !main計算
-    integer,dimension(n)::phase_judge
+    integer,dimension(n)::phase_judge,phase
     real(8),dimension(n)::V,L,P,Pold
     real(8),dimension(com_2phase,n)::lnk
     real(8),dimension(com_2phase+com_ion,n)::Nc,Ncold,z
     real(8),dimension(com_mine,n)::Nm,Nmold
-    real(8)::Pb0
+    real(8)::Pb0,fai(n),fai0,Nmini(com_mine)
+    real(8),dimension(21)::Swd,krgd,krwd
     
     
     
@@ -49,7 +50,11 @@ program main
         ,x0(com_2phase),y0(com_2phase+com_ion),w0(com_2phase),alpha0(com_2phase),cmat(com_2phase+1,com_2phase+1)&
         ,chemi_mat(chemi+mine,com_all),emat(eq,eq),gmat(n*eq,n*eq),hmat(n*eq))
      
-        
+    !!相対浸透率のテーブルデータのインプット
+    do i=1,21
+        read(100,*) Swd(i),krgd(i),krwd(i)
+    end do
+
     !!化学反応の係数のインプット
     do i=1,chemi+mine
         read(1,*) (chemi_mat(i,j),j=1,com_all)
@@ -172,16 +177,16 @@ program main
         if (z0(1) > z0(2) +z0(3)+z0(4)) then
             V0 = 0.0d0
             L0 = 1.0d0 - V0
-            phase = 1 !液相のみ
+            phase0 = 1 !液相のみ
         else
             V0 = 1.0d0
             L0 = 1.0d0 - V0
-            phase = 3 !気相のみ
+            phase0 = 3 !気相のみ
             !write(*,*) V0
         end if
     else
         phase_judge0 = 2
-        phase = 2 !2相
+        phase0 = 2 !2相
         v0 = z0(2) + z0(3) + z0(4)
         L0 = 1.0d0 - v0
         if (z0(1) >= (z0(2)+z0(3)+z0(4))) then !液相から気相が出てくるパターン
@@ -250,7 +255,7 @@ program main
     
     if (phase_judge0 == 2) then !2相
         call ini_N_2phase(z_factor0,V0,z0,x0,y0,k0,Nc0,Nt,Sw0)
-    else if (phase == 1) then !液相のみ
+    else if (phase0 == 1) then !液相のみ
         call ini_N_liquid(V0,z0,x0,y0,Nc0,Nt,Sw0)
     else !気相のみ
         call ini_N_vapor(V0,z0,x0,y0,Nc0,Nt,Sw0)
@@ -278,12 +283,12 @@ program main
     !!ここまでは良さそう
     
     !液相がある場合、電離
-    if (phase_judge0 == 2 .or. phase == 1) then
+    if (phase_judge0 == 2 .or. phase0 == 1) then
         do time =1,300!00 !time iteration
             write(11,*) 'day',time
             do iteration =1,100
                 write(11,*) iteration
-                call ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,chemi_mat,phase_judge0,z0,theta0,z_factor0,fxs)
+                call ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,fai0,chemi_mat,phase_judge0,z0,theta0,z_factor0,fxs)
                 call jacobian_mat(fxs,emat)
                 call outxs(fxs,fmat)
                 fmat = -fmat
@@ -312,7 +317,7 @@ program main
                         fmat(i+chemi) =0.0d0
                     end if
                 end do
-                if (phase == 1) then !水相だけの時はrachford解かないよ
+                if (phase0 == 1) then !水相だけの時はrachford解かないよ
             !        write(10,*) 'u'
                     do i =1,eq
                         emat(i,eq) = 0.0d0
@@ -395,7 +400,9 @@ program main
     end do
     do i=1,com_mine
         Nm(i,:)=Nm0(i)
+        Nmini(i)=Nm0(i)
     end do
+    fai=fai0
     P=P0
     Pold=P
     Pb0 = P(1)
@@ -503,16 +510,16 @@ program main
                 if (z0(1) > z0(2) +z0(3)+z0(4)) then
                     V0 = 0.0d0
                     L0 = 1.0d0 - V0
-                    phase = 1 !液相のみ
+                    phase(ii) = 1 !液相のみ
                 else
                     V0 = 1.0d0
                     L0 = 1.0d0 - V0
-                    phase = 3 !気相のみ
+                    phase(ii) = 3 !気相のみ
             !        !write(*,*) V0
                 end if
             else
                 phase_judge(ii) = 2
-                phase = 2 !2相
+                phase(ii) = 2 !2相
                 v0 = z0(2) + z0(3) + z0(4)
                 L0 = 1.0d0 - v0
                 if (z0(1) >= (z0(2)+z0(3)+z0(4))) then !液相から気相が出てくるパターン
@@ -555,7 +562,7 @@ program main
         q_judge = 1 !!とりあえず流量制御で固定
 
         do iteration=1,1!00
-            call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,P,Pold,Pb0,q_judge,phase_judge,fxs)
+            call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,Nmini,P,Pold,Pb0,fai,q_judge,phase_judge,phase,Swd,krgd,krwd,fxs)
 
             deallocate(gmat,hmat)
             allocate(gmat(n*eq+q_judge,n*eq+q_judge),hmat(n*eq+q_judge))

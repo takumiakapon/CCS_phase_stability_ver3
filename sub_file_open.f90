@@ -6,5 +6,7 @@ subroutine file_open
     open(12,file='aaa.csv')
     open(13,file='iii.csv')
     open(14,file='iniconditon.csv')
+
+    open(100,file='relative permeability.txt')
     end subroutine
     

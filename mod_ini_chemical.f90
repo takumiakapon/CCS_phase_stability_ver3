@@ -10,10 +10,10 @@ module mod_ini_chemical
     
     contains
     
-    subroutine ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,chemi_mat,phase_judge0,z0,theta0,z_factor0,g)
+    subroutine ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,fai0,chemi_mat,phase_judge0,z0,theta0,z_factor0,g)
         implicit none
         integer,intent(in)::phase_judge0
-        real(8),intent(inout)::P0,P0old,V0,Sw0,z_factor0
+        real(8),intent(inout)::P0,P0old,V0,Sw0,z_factor0,fai0
         real(8),intent(inout),dimension(com_2phase)::lnk0
         real(8),intent(inout),dimension(com_2phase+com_ion)::Nc0,Nc0old
         real(8),intent(inout),allocatable,dimension(:)::z0
@@ -329,7 +329,8 @@ module mod_ini_chemical
         fai = faimine * (1.0d0+Cr*(P-iniPressure))
         faiold = faimineold*(1.0d0+Cr*(P0old-iniPressure))
         
-        
+        call out_diffsx(fai,fai0)
+        !write(*,*) fai0
         
         !!!!!!chemical!!!!!
         

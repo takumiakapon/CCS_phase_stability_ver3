@@ -147,10 +147,25 @@ module mod_input
     
     !岩石圧縮率
     real(8),parameter::Cr=8.073d0*10.0d0**(-10.0d0) !苫小牧
+
+    !絶対浸透率(とりあえず定数?)
+    real(8),parameter::k_ini=3.0d0*10.0d0**(-13.0d0) !carbfix site
+    !30.0d0*9.86923d0*10**(-16.0d0) ![mD→m^2] !吉田さん学部
+    !
+    !
+    !5.0d0*9.86923d0*10**(-16.0d0) ![mD→m^2] !長尾さん修士
+    !2.7d0*9.86923d0*10**(-16.0d0) !鈴木さん学部苫小牧
     
     !!timestep
     real(8),parameter::dt=1.0d0*60.0d0*60.0d0!*24.0d0
     
+    !!坑井関連
+    real(8),parameter::rw=0.0762d0 ![m]
+    real(8),parameter::Pbh0=30.d0*10.0d0**(6.0d0)
+    real(8),parameter::skin=0.0d0
+    real(8),parameter::q_SC=15000d0/(24.0d0*60.0d0*60.0d0) ![m^3/day]→[m^3/s]150000d0/(24.0d0*60.0d0*60.0d0)
+    real(8),parameter::MD_in_SC=1.0d0/(23.53d0*10.0d0**(-3.0d0)) ![L/mol]→[m^3/mol]
+    real(8),parameter::q_input=q_SC/(dx*dy*dz)*MD_in_SC!q_SC/(dx*dy*dz)*MD_in_SC ![m^3/s]*[/m^3]*[m^3/mol]=[m^3/mol/s]
     
     
     

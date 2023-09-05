@@ -4,20 +4,22 @@ module mod_main_calc
     use mod_cubic_eq_d
     use mod_input
     use mod_fugacity
+    use mod_injection_data
 
     implicit none
 
     integer,private::i,j
 
     contains
-    subroutine main_calc(V0,lnk0,Nc0,Nc0old,Nm0,Nm0old,P0,P0old,Pb0,q_judge,phase_judge,g)
+    subroutine main_calc(V0,lnk0,Nc0,Nc0old,Nm0,Nm0old,Nmini,P0,P0old,Pb0,fai0,q_judge,phase_judge,phase,Swd,krgd,krwd,g)
         implicit none
-        integer,intent(inout)::q_judge,phase_judge(n)
-        real(8),intent(inout)::Pb0
-        real(8),intent(inout),dimension(n)::V0,P0,P0old
+        integer,intent(inout)::q_judge,phase_judge(n),phase(n)
+        real(8),intent(inout)::Pb0,Nmini(com_mine)
+        real(8),intent(inout),dimension(n)::V0,P0,P0old,fai0
         real(8),intent(inout),dimension(com_2phase,n)::lnk0
         real(8),intent(inout),dimension(com_2phase+com_ion,n)::Nc0,Nc0old
         real(8),intent(inout),dimension(com_mine,n)::Nm0,Nm0old
+        real(8),intent(in),dimension(21)::Swd,krgd,krwd
         type(diffs),allocatable,intent(out)::g(:)
         type(diffs),allocatable,target::xd(:)
         type(diffs),pointer::P(:),V(:),lnk1(:),lnk2(:),lnk3(:),lnk4(:),Nc1(:),Nc2(:),Nc3(:),Nc4(:),Nc5(:),Nc6(:),Nc7(:)
@@ -35,8 +37,13 @@ module mod_main_calc
 
         real(8)::beta_v,myu_H2O_20,sa,sisuu,myu_L_normal,Vc(com_2phase),Tc(com_2phase),Pc(com_2phase),myu_c(com_2phase)
         real(8)::av_0,av_1,av_2,av_3,av_4
-        type(diffs)::myu_L(n),Pc_ave_V(n),Tc_ave_V(n),Vc_ave_V(n),zeta(n),ro_r_V(n),myu_V_SC(n),myu_V(n)
+        type(diffs)::myu_L(n),Pc_ave_V(n),Tc_ave_V(n),Vc_ave_V(n),zeta(n),ro_r_V(n),myu_V_SC(n),myu_V(n),krg(n),krw(n)
+        real(8),allocatable,dimension(:)::Sw0
+        type(diffs)::faimine(n),fai(n),kk(n),ramda
+        real(8)::faimineold(n),faiold(n),NmMD(com_mine)
         
+        real(8)::re,W(n)
+        type(diffs)::q,MD_injection_d,T_L(com_2phase+com_ion,n),T_V(com_2phase,n)
 
         allocate(x0(n*eq+q_judge))
 
@@ -231,6 +238,8 @@ module mod_main_calc
                 call residualvectorset3(n*eq+q_judge,Sg(i))
             end if
         end do
+        call outxs(Sw,Sw0)
+        
         
         !!相質量密度[kg/m^3]
         Mw(1)=18.01528d0 !モル質量[g/mol]
@@ -344,6 +353,95 @@ module mod_main_calc
         call outxs(myu_L,kakuninn)
         write(*,*) kakuninn!!粘度よさそう
 
+        !!相対浸透率について
+        do i=1,n
+            do j=1,20
+                if (Swd(j) < Sw0(i) .and. Sw0(i) <= Swd(j+1)) then
+                    krg(i)=(krgd(j+1)-krgd(j))/(Swd(j+1)-Swd(j))*(Sw(i)-Swd(j))+krgd(j)
+                    krw(i)=(krwd(j+1)-krwd(j))/(Swd(j+1)-Swd(j))*(Sw(i)-Swd(j))+krwd(j)
+                end if
+            end do
+        end do
+
+        !!孔隙率について
+        NmMD(1)=Nm1_MD
+        NmMD(2)=Nm2_MD
+        NmMD(3)=Nm3_MD
+        NmMD(4)=Nm4_MD
+        NmMD(5)=Nm5_MD
+        do i=1,n
+            call residualvectorset4(fai0(i),n*eq+q_judge,faimine(i))
+            faimineold(i)=fai0(i)
+            do j=1,com_mine
+                faimine(i)=faimine(i)-(Nm(j,i)-Nmini(j))/NmMD(j)
+                faimineold(i)=faimineold(i)-(Nm0old(j,i)-Nmini(j))/NmMD(j)
+            end do
+            fai(i)=faimine(i)*(1.0d0+Cr*(P(i)-iniPressure))
+            faiold(i)=faimineold(i)*(1.0d0+Cr*(P0old(i)-iniPressure))            
+        end do
+        
+
+        !!絶対浸透率
+        do i=1,n
+            !kk(i)=k_ini*(fai(i)/faiini)**3.0d0*((1.0d0-faiini)/(1.0d0-fai(i)))**2.0d0
+            call residualvectorset4(k_ini,n*eq+q_judge,kk(i))
+        end do
+
+
+        !!injection
+        if (phase_judge(1) == 2) then !?2相の時
+            ramda = krg(1)/myu_V(1) + krw(1)/myu_L(1)
+        elseif (phase(1) == 1) then !?液相のみ
+            ramda = 1.0d0/myu_L(1)
+        else !?気相のみ 
+            ramda = 1.0d0/myu_V(1)
+        end if
+        re=0.14d0*sqrt(dx**2.0d0+dy**2.0d0)
+        if (q_judge == 1) then
+            q=2.0d0*pi*kk(1)*dz*ramda*(Pb-P(1))/(log(re/rw)+skin)/dx/dy/dz !?流量制御
+        else
+            !?q=2.0d0*pi*kk(1)*dz*ramda*(Pbh0-P(1))/(log(re/rw)+skin)/dx/dy/dz !?圧力制御
+            !?call residualvectorset3(n*eq+q_judge,q) !?圧力制御 !!ここ覚えていない、上の方が正しそうだけど、なんだっけ？
+        end if
+
+        call injection_data_d(P(1),MD_injection_d)
+
+        !!weighting factor------
+        do i=1,n-1
+            if (P0(i+1) >= P0(i)) then
+                W(i)=0.0d0
+            else 
+                w(i)=1.0d0
+            end if
+        end do
+        !write(1,*)w
+        !?----------------------
+
+        !!トランスミッシビリティー-----
+        do i=1,n
+            if (phase_judge(i) == 2) then !?2相の時
+                do j=1,com_2phase+com_ion
+                    T_L(j,i)=kk(i)*krw(i)*MD_L(i)*x(j,i)/myu_L(i)
+                end do
+                do j=1,com_2phase
+                    T_V(j,i)=kk(i)*krg(i)*MD_V(i)*y(j,i)/myu_V(i)
+                end do
+            elseif (phase(i) == 1) then !?液相だけの時
+                do j=1,com_2phase+com_ion
+                    T_L(j,i)=kk(i)*MD_L(i)*x(j,i)/myu_L(i)
+                end do
+                do j=1,com_2phase
+                    call residualvectorset3(n*eq+q_judge,T_V(j,i))
+                end do
+            else !?気相だけの時
+                do j=1,com_2phase+com_ion
+                    call residualvectorset3(n*eq+q_judge,T_L(j,i))
+                end do
+                do j=1,com_2phase
+                    T_V(j,i)=kk(i)*MD_V(i)*y(j,i)/myu_V(i)
+                end do
+            end if
+        end do
 
 
 
