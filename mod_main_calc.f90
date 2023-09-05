@@ -8,13 +8,14 @@ module mod_main_calc
 
     implicit none
 
-    integer,private::i,j
+    integer,private::i,j,jj
 
     contains
-    subroutine main_calc(V0,lnk0,Nc0,Nc0old,Nm0,Nm0old,Nmini,P0,P0old,Pb0,fai0,q_judge,phase_judge,phase,Swd,krgd,krwd,g)
+    subroutine main_calc(V0,lnk0,Nc0,Nc0old,Nm0,Nm0old,Nmini,P0,P0old,Pb0,fai0,q_judge,phase_judge,phase,&
+                        Swd,krgd,krwd,chemi_mat,g)
         implicit none
         integer,intent(inout)::q_judge,phase_judge(n),phase(n)
-        real(8),intent(inout)::Pb0,Nmini(com_mine)
+        real(8),intent(inout)::Pb0,Nmini(com_mine),chemi_mat(chemi+mine,com_all)
         real(8),intent(inout),dimension(n)::V0,P0,P0old,fai0
         real(8),intent(inout),dimension(com_2phase,n)::lnk0
         real(8),intent(inout),dimension(com_2phase+com_ion,n)::Nc0,Nc0old
@@ -45,6 +46,16 @@ module mod_main_calc
         real(8)::re,W(n)
         type(diffs)::q,MD_injection_d,T_L(com_2phase+com_ion,n),T_V(com_2phase,n)
 
+        !化学反応
+        real(8)::ks(chemi+mine),ke(chemi),km(mine),wc0(com_2phase+com_ion,n),theta0(chemi+mine,n),min0
+        real(8),allocatable,dimension(:)::w10,w20,w30,w40,w50,w60,w70,w80,w90,w100,w110,w120,w130,w140
+        !real(8),allocatable,dimension(:)::Q10,Q20,Q30,Q40,Q50,Q60,Q70,Q80,Q90,Q100
+        real(8),allocatable,dimension(:)::theta10,theta20,theta30,theta40,theta50,theta60,theta70,theta80,theta90,theta100
+        type(diffs)::wc(com_2phase+com_ion,n),Ac(com_mine,n),Q_chemi(chemi+mine,n),theta(chemi+mine,n),min
+        type(diffs),dimension(n)::w1,w2,w3,w4,w5,w6,w7,w8,w9,wten,w11,w12,w13,w14
+        !type(diffs),dimension(n)::Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Qten
+        type(diffs),dimension(n)::theta1,theta2,theta3,theta4,theta5,theta6,theta7,theta8,theta9,thetaten
+        type(diffs)::rs(chemi+mine,n),rs_sum(com_all,n)
         allocate(x0(n*eq+q_judge))
 
         !!自動微分の下準備
@@ -444,7 +455,220 @@ module mod_main_calc
         end do
 
 
+        !!化学反応======================================
+        !!速度定数[mol/m^3/s]
+        do i=1,chemi
+            ks(i) =1.0d0*10.0d0**(-3.0d0) !化学反応
+        end do
+        ks(6)=10.0d0**(-9.12d0) !アノーサイト
+        ks(7)=10.0d0**(-12.7d0) !エンスタタイト
+        ks(8)=10.0d0**(-10.64d0) !フォルステライト
+        ks(9)=10.0d0**(-5.81d0) !カルサイト
+        ks(10)=10.0d0**(-9.34d0) !マグネサイト
+        
+        
+        !!平衡定数
+        ke(1) = ke1
+        ke(2) = ke2
+        ke(3) = ke3
+        ke(4) = ke4
+        ke(5) = ke5
+        km(1) = km1
+        km(2) = km2
+        km(3) = km3
+        km(4) = km4
+        km(5) = km5
 
+        do i=1,n
+            do j=1,com_2phase+com_ion
+                wc(j,i)=MD_L(i)*x(j,i)/(MD_L(i)*x(1,i)*18.015d0*10.0d0**(-3.0d0))
+            end do
+            call residualvectorset4(1.0d0,n*eq+q_judge,wc(1,i))
+            w1(i)=wc(1,i)
+            w2(i)=wc(2,i)
+            w3(i)=wc(3,i)
+            w4(i)=wc(4,i)
+            w5(i)=wc(5,i)
+            w6(i)=wc(6,i)
+            w7(i)=wc(7,i)
+            w8(i)=wc(8,i)
+            w9(i)=wc(9,i)
+            wten(i)=wc(10,i)
+            w11(i)=wc(11,i)
+            w12(i)=wc(12,i)
+            w13(i)=wc(13,i)
+            w14(i)=wc(14,i)
+        end do
+        call outxs(w1,w10)
+        call outxs(w2,w20)
+        call outxs(w3,w30)
+        call outxs(w4,w40)
+        call outxs(w5,w50)
+        call outxs(w6,w60)
+        call outxs(w7,w70)
+        call outxs(w8,w80)
+        call outxs(w9,w90)
+        call outxs(wten,w100)
+        call outxs(w11,w110)
+        call outxs(w12,w120)
+        call outxs(w13,w130)
+        call outxs(w14,w140)
+        do i=1,n
+            wc0(1,i)=w10(i)
+            wc0(2,i)=w20(i)
+            wc0(3,i)=w30(i)
+            wc0(4,i)=w40(i)
+            wc0(5,i)=w50(i)
+            wc0(6,i)=w60(i)
+            wc0(7,i)=w70(i)
+            wc0(8,i)=w80(i)
+            wc0(9,i)=w90(i)
+            wc0(10,i)=w100(i)
+            wc0(11,i)=w110(i)
+            wc0(12,i)=w120(i)
+            wc0(13,i)=w130(i)
+            wc0(14,i)=w140(i)
+        end do
+
+        !!比表面積(初期の比表面積をすべて一緒にしちゃってる)
+        do i=1,n
+            do j=1,com_mine
+                Ac(j,i)=AA1*Nm(j,i)/Nmini(j)
+            end do
+        end do
+
+        !!活量積
+        do i=1,n
+            do j=1,chemi
+                call residualvectorset4(1.0d0,n*eq+q_judge,Q_chemi(j,i))
+                do jj=1,com_2phase+com_ion
+                    if (Nm0(jj,i) /= 0) then
+                        Q_chemi(j,i)=Q_chemi(j,i)*wc(jj,i)**chemi_mat(j,jj)
+                    end if
+                    theta(j,i)=Q_chemi(j,i)/ke(j)
+                enddo
+            end do
+            do j=1,mine
+                call residualvectorset4(1.0d0,n*eq+q_judge,Q_chemi(j+chemi,i))
+                do jj=1,com_2phase+com_ion
+                    if (Nm0(jj,i) /= 0) then
+                        Q_chemi(j+chemi,i)=Q_chemi(j+chemi,i)*wc(jj,i)**chemi_mat(j+chemi,jj)
+                    end if
+                    theta(j+chemi,i)=Q_chemi(j+chemi,i)/km(j)
+                enddo
+            end do
+            theta1(i)=theta(1,i)
+            theta2(i)=theta(2,i)
+            theta3(i)=theta(3,i)
+            theta4(i)=theta(4,i)
+            theta5(i)=theta(5,i)
+            theta6(i)=theta(6,i)
+            theta7(i)=theta(7,i)
+            theta8(i)=theta(8,i)
+            theta9(i)=theta(9,i)
+            thetaten(i)=theta(10,i)
+        end do
+        call outxs(theta1,theta10)
+        call outxs(theta2,theta20)
+        call outxs(theta3,theta30)
+        call outxs(theta4,theta40)
+        call outxs(theta5,theta50)
+        call outxs(theta6,theta60)
+        call outxs(theta7,theta70)
+        call outxs(theta8,theta80)
+        call outxs(theta9,theta90)
+        call outxs(thetaten,theta100)
+        !write(*,*) theta10
+        !write(*,*) theta20
+        !write(*,*) theta30
+        !write(*,*) theta40
+        !write(*,*) theta50
+        !write(*,*) theta60
+        !write(*,*) theta70
+        !write(*,*) theta80
+        !write(*,*) theta90
+        !write(*,*) theta100
+        do i=1,n
+            theta0(1,i)=theta10(i)
+            theta0(2,i)=theta20(i)
+            theta0(3,i)=theta30(i)
+            theta0(4,i)=theta40(i)
+            theta0(5,i)=theta50(i)
+            theta0(6,i)=theta60(i)
+            theta0(7,i)=theta70(i)
+            theta0(8,i)=theta80(i)
+            theta0(9,i)=theta90(i)
+            theta0(10,i)=theta100(i)
+        end do
+
+        do i=1,n
+            !!化学反応の反応速度
+            !H2O + CO2 = HCO3- + H+
+            !HCO3- = H+ + CO32-
+            !H2O = H+ + OH-
+            min0=10000000000000000.0d0
+            do j=1,chemi
+                call residualvectorset4(min0,n*eq+q_judge,min)
+                if (theta0(j,i) < 1.0d0) then !順反応
+                    do jj=1,com_2phase+com_ion
+                        if (chemi_mat(j,jj) < 0.0d0) then !減少成分
+                            if (min0 > wc0(jj,i)) then !最小成分
+                                min0=wc0(jj,i)
+                                min=wc(jj,i)
+                            end if
+                        end if
+                    end do
+                else !逆反応
+                    do jj=1,com_2phase+com_ion
+                        if(chemi_mat(j,jj) > 0.0d0) then
+                            if (min0 > wc0(jj,i)) then
+                                min0=wc0(jj,i)
+                                min=wc(jj,i)
+                            end if
+                        end if
+                    end do
+                end if
+                rs(j,i)=ks(j)*(1.0d0-theta(j,i))*fai(i)*Sw(i)*min
+            end do
+
+
+            !!鉱物反応の反応速度
+            !αCO3 + H+ = α2+ + HCO3-
+            !αSiO3 + 2H+ = α2+ + H2O + SiO2
+            do j=chemi+1,chemi+mine
+                rs(j,i)=Ac(j-chemi,i)*ks(j)*(1.0d0-theta(j,i))*Sw(i)!*fai(i)
+            end do
+        end do
+        
+
+        !!反応速度の合計
+        do i=1,n
+            do j=1,com_all
+                call residualvectorset3(n*eq+q_judge,rs_sum(j,i))
+                do jj=1,chemi
+                    rs_sum(j,i)=rs_sum(j,i)+rs(jj,i)*chemi_mat(jj,j)
+                end do
+            end do
+        end do
+
+
+        !!物質収支式
+        !?grid1
+
+        
+            
+        !?gridn
+
+
+        !?境界以外
+        do i=2,n-1
+            do j=1,com_2phase+com_ion
+                g(i*eq-eq+j+com_2phase)=Nc(j,i)
+            end do
+            do j=1,com_mine
+                g(i*eq-eq+j+com_2phase+com_2phase+com_ion)=Nm(j,i)
+            end do
+        end do
 
 
 
@@ -457,23 +681,15 @@ module mod_main_calc
         
         do i=1,n
             do j=1,com_2phase
-                g(i*eq-eq+j)=lnk(j,i)+lnfai_V(j,i)-lnfai_L(j,i)
+                g(i*eq-eq+j)=lnk(j,i)+lnfai_V(j,i)-lnfai_L(j,i) !!熱力学的条件式
             end do
-            do j=1,com_2phase+com_ion
-                g(i*eq-eq+j+com_2phase)=Nc(j,i)
-            end do
-            do j=1,com_mine
-                g(i*eq-eq+j+com_2phase+com_2phase+com_ion)=Nm(j,i)
-            end do
-
-            
-            g(i*eq-1)=P(i)!Sw(i)+Sg(i)-1.0d0
-            g(i*eq)=rach(i)
+            g(i*eq-1)=Sw(i)+Sg(i)-1.0d0 !!飽和率の制約式
+            g(i*eq)=rach(i) !!rachford-rice
         end do
 
         !!流量制御
         if (q_judge == 1) then
-            g(n*eq+q_judge) = Pb
+            g(n*eq+q_judge) = q_input - q*MD_injection_d !!坑井式
         end if
 
         call outxs(rach,kakuninn)

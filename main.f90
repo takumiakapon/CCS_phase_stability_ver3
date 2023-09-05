@@ -562,7 +562,8 @@ program main
         q_judge = 1 !!とりあえず流量制御で固定
 
         do iteration=1,1!00
-            call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,Nmini,P,Pold,Pb0,fai,q_judge,phase_judge,phase,Swd,krgd,krwd,fxs)
+            call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,Nmini,P,Pold,Pb0,fai,q_judge,phase_judge,phase,&
+                            Swd,krgd,krwd,chemi_mat,fxs)
 
             deallocate(gmat,hmat)
             allocate(gmat(n*eq+q_judge,n*eq+q_judge),hmat(n*eq+q_judge))
