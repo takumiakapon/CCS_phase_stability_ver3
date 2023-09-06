@@ -573,11 +573,15 @@ program main
 
 
             do i=1,n*eq+q_judge
-                write(13,*) (gmat(i,j),j=1,n*eq+q_judge)
+            !    write(13,*) (gmat(i,j),j=1,n*eq+q_judge),hmat(i)
             end do
 
             !call pvgauss(n*eq+q_judge,gmat,hmat)
-            !!相の数とか、成分の数で分岐
+            !!#TODO相の数とか、成分の数で分岐
+            do i=1,n*eq+q_judge
+                write(13,*) (gmat(i,j),j=1,n*eq+q_judge),hmat(i)
+            end do
+            
 
         end do
 

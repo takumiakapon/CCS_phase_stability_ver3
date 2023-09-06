@@ -55,7 +55,7 @@ module mod_main_calc
         type(diffs),dimension(n)::w1,w2,w3,w4,w5,w6,w7,w8,w9,wten,w11,w12,w13,w14
         !type(diffs),dimension(n)::Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Qten
         type(diffs),dimension(n)::theta1,theta2,theta3,theta4,theta5,theta6,theta7,theta8,theta9,thetaten
-        type(diffs)::rs(chemi+mine,n),rs_sum(com_all,n)
+        type(diffs)::rs(chemi+mine,n),rs_sum(com_all,n),rs1(n)
         real(8)::AA(mine)
 
         allocate(x0(n*eq+q_judge))
@@ -549,7 +549,7 @@ module mod_main_calc
             do j=1,chemi
                 call residualvectorset4(1.0d0,n*eq+q_judge,Q_chemi(j,i))
                 do jj=1,com_2phase+com_ion
-                    if (Nm0(jj,i) /= 0) then
+                    if (Nc0(jj,i) /= 0) then
                         Q_chemi(j,i)=Q_chemi(j,i)*wc(jj,i)**chemi_mat(j,jj)
                     end if
                     theta(j,i)=Q_chemi(j,i)/ke(j)
@@ -558,7 +558,7 @@ module mod_main_calc
             do j=1,mine
                 call residualvectorset4(1.0d0,n*eq+q_judge,Q_chemi(j+chemi,i))
                 do jj=1,com_2phase+com_ion
-                    if (Nm0(jj,i) /= 0) then
+                    if (Nc0(jj,i) /= 0) then
                         Q_chemi(j+chemi,i)=Q_chemi(j+chemi,i)*wc(jj,i)**chemi_mat(j+chemi,jj)
                     end if
                     theta(j+chemi,i)=Q_chemi(j+chemi,i)/km(j)
@@ -608,6 +608,8 @@ module mod_main_calc
             theta0(10,i)=theta100(i)
         end do
 
+        
+
         do i=1,n
             !!化学反応の反応速度
             !H2O + CO2 = HCO3- + H+
@@ -647,6 +649,11 @@ module mod_main_calc
             end do
         end do
         
+        do i=1,n
+        !    rs1(i)=rs(3,i)
+        end do
+        !call outxs(rs1,kakuninn)
+        !write(*,*) kakuninn
 
         !!反応速度の合計
         do i=1,n
@@ -658,26 +665,80 @@ module mod_main_calc
             end do
         end do
 
+        do i=1,n
+        !    rs1(i) = rs_sum(9,i)
+        end do
+        !call outxs(rs1,kakuninn)
+        !write(*,*) kakuninn
+
 
         !!物質収支式
         !?grid1
+        do j=1,com_2phase+com_ion
+            g(1*eq-eq+com_2phase+j)=(-1.0d0/dt)*(Nc(j,1)*fai(1)-Nc0old(j,1)*faiold(1))
+            if (phase(1) == 1 .or. phase(1) == 2) then !?液相あり
+                g(1*eq-eq+com_2phase+j)=&
+                g(1*eq-eq+com_2phase+j)+(1.0d0/dx**2.0d0)*((w(1)*T_L(j,1)+(1.0d0-W(1))*T_L(j,1))*(P(2)-P(1)))&    
+                                                +rs_sum(j,1)
+            end if
+        end do
+        if (phase(1) == 3 .or. phase(1) == 2) then !?気相あり
+            do j=1,com_2phase
+                g(1*eq-eq+com_2phase+j)=&
+                g(1*eq-eq+com_2phase+j)+(1.0d0/dx**2.0d0)*((w(1)*T_V(j,1)+(1.0d0-W(1))*T_V(j,1))*(P(2)-P(1)))
+            end do
+        end if
 
-        
-            
-        !?gridn
+        g(1*eq-eq+com_2phase+2)=g(1*eq-eq+com_2phase+2)+q*MD_injection_d
+
+
 
 
         !?境界以外
         do i=2,n-1
             do j=1,com_2phase+com_ion
-                g(i*eq-eq+j+com_2phase)=Nc(j,i)
+                g(i*eq-eq+j+com_2phase)=(-1.0d0/dt)*(Nc(j,i)*fai(i)-Nc0old(j,i)*faiold(i))
+                if (phase(i) == 1 .or. phase(i) == 2) then !?液相あり
+                    g(i*eq-eq+j+com_2phase)=&
+                    g(i*eq-eq+j+com_2phase)+(1.0d0/dx**2.0d0)*((W(i)*T_L(j,i)+(1.0d0-W(i))*T_L(j,i+1))*(P(i+1)-P(i))-&
+                                                               (W(i-1)*T_L(j,i-1)+(1.0d0-W(i-1))*T_L(j,i))*(P(i)-P(i-1)))&
+                                                            +rs_sum(j,i)
+                end if
             end do
-            do j=1,com_mine
-                g(i*eq-eq+j+com_2phase+com_2phase+com_ion)=Nm(j,i)
-            end do
+            if (phase(i) == 3 .or. phase(i) == 2) then !?気相あり
+                do j=1,com_2phase
+                    g(i*eq-eq+j+com_2phase)=&
+                    g(i*eq-eq+j+com_2phase)+(1.0d0/dx**2.0d0)*((W(i)*T_V(j,i)+(1.0d0-W(i))*T_V(j,i+1))*(P(i+1)-P(i))-&
+                                                               (W(i-1)*T_V(j,i-1)+(1.0d0-W(i-1))*T_V(j,i))*(P(i)-P(i-1)))
+                end do
+            end if            
         end do
 
 
+        !?gridn
+        do i=j,com_2phase+com_ion
+            g(n*eq-eq+com_2phase+j)=(-1.0d0/dt)*(Nc(j,n)*fai(n)-Nc0old(j,n)*faiold(n))
+            if (phase(n) == 1 .or. phase(n) == 2) then !?液相あり
+                g(n*eq-eq+com_2phase+j)=&
+                g(n*eq-eq+com_2phase+j)+(-1.0d0/dx**2.0d0)*((W(n-1)*T_L(j,n-1)+(1.0d0-W(n-1))*T_L(j,n))*(P(n)-P(n-1)))&
+                                                +rs_sum(j,n)
+            end if
+        end do
+        if (phase(n) == 3 .or. phase(n) == 2) then !?気相あり
+            do j=1,com_2phase
+                g(n*eq-eq+com_2phase+j)=&
+                g(n*eq-eq+com_2phase+j)+(-1.0d0/dx**2.0d0)*((W(n-1)*T_V(j,n-1)+(1.0d0-W(n-1))*T_V(j,n))*(P(n)-P(n-1)))
+            end do
+        end if
+
+
+
+        do i =1,n
+            do j=1,com_mine
+                g(i*eq-eq+j+com_2phase+com_2phase+com_ion)=&
+                    (-1.0d0)*(Nm(j,i)*(1.0d0-fai(i))-Nm0old(j,i)*(1.0d0-faiold(i)))/dt +rs_sum(j+com_2phase+com_ion,i)
+            end do
+        end do
 
 
 
@@ -699,8 +760,8 @@ module mod_main_calc
             g(n*eq+q_judge) = q_input - q*MD_injection_d !!坑井式
         end if
 
-        call outxs(rach,kakuninn)
-        write(*,*) kakuninn
+        !call outxs(rach,kakuninn)
+        !write(*,*) kakuninn
         
     end subroutine
 
