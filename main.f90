@@ -21,7 +21,7 @@ program main
     implicit none
     
     !!初期計算用
-    integer::i,j,iteration,time,phase_judge0,phase0,ii,year,q_judge
+    integer::i,j,jj,iteration,time,phase_judge0,phase0,ii,year,q_judge
     real(8),allocatable,dimension(:,:)::amat,cmat,emat,gmat
     real(8),allocatable,dimension(:)::bmat,z0,k0,lnk0,x0,y0,w0,alpha0,dmat,fmat,hmat,theta0
     real(8)::V0,L0,P0,P0old,error,wt,lumda,z_factor0
@@ -420,7 +420,7 @@ program main
     
     !!ようやくメイン計算！！！
     
-    do year=1,1!000
+    do year=1,10!000
     !    
     !    !!相安定解析
         do ii=1,5 !gridごとに相安定性解析するよ
@@ -549,7 +549,7 @@ program main
             end do
 
             
-                write(*,*) ii,'grid',phase_judge(ii),'phase'
+                !write(*,*) ii,'grid',phase_judge(ii),'phase'
         end do
         
         
@@ -561,7 +561,7 @@ program main
         end if
         q_judge = 1 !!とりあえず流量制御で固定
 
-        do iteration=1,1!00
+        do iteration=1,10!00
             call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,Nmini,P,Pold,Pb0,fai,q_judge,phase_judge,phase,&
                             Swd,krgd,krwd,chemi_mat,fxs)
 
@@ -575,16 +575,61 @@ program main
             do i=1,n*eq+q_judge
             !    write(13,*) (gmat(i,j),j=1,n*eq+q_judge),hmat(i)
             end do
+            do i=1,n
+                do j=1,com_2phase+com_ion
+                    if (Nc(j,i) == 0) then
+                        do jj=1,eq
+                            !gmat(i*eq-eq+j+com_2phase,jj) = 0.0d0
+                            !gmat(jj,i*eq-eq+j+com_2phase) = 0.0d0
+                            !gmat(i*eq-eq+j+com_2phase,i*eq-eq+j+com_2phase) = 10000.0d0 !?存在しない成分は計算しない？
+                        end do
+                    end if
+                end do
+            end do
+            
 
-            !call pvgauss(n*eq+q_judge,gmat,hmat)
+            call pvgauss(n*eq+q_judge,gmat,hmat)
             !!#TODO相の数とか、成分の数で分岐
             do i=1,n*eq+q_judge
-                write(13,*) (gmat(i,j),j=1,n*eq+q_judge),hmat(i)
+            !    write(13,*) (gmat(i,j),j=1,n*eq+q_judge),hmat(i)
             end do
+            
+
+            !!更新
+            do i=1,n
+                do j=1,com_2phase
+                    lnk(j,i) = lnk(j,i) + hmat(i*eq-eq+j)
+                end do
+                do j=1,com_2phase+com_ion
+                    Nc(j,i) = Nc(j,i) + hmat(i*eq-eq+com_2phase+j)
+                end do
+                do j=1,com_mine
+                    Nm(j,i) = Nm(j,i) + hmat(i*eq-eq+com_2phase+com_2phase+com_ion+j)
+                end do
+                P(i) = P(i) + hmat(i*eq-1)
+                V(i) = V(i) + hmat(i*eq)
+            end do
+            if (q_judge == 1) then
+                Pb0 = Pb0 + hmat(n*eq+q_judge)
+            end if 
+            error = sqrt(dot_product(hmat,hmat))
+
+            !write(*,*) iteration,error
+            if (error < 10.0d0**(-5.0d0)) then
+                exit
+            end if
+
             
 
         end do
 
+        do i=1,n
+            write(*,*) year,iteration,P(i)
+        end do
+
+        Pold = P
+        Ncold = Nc
+        Nmold = Nm
         !?visual studio communityだと謎にヒープが壊れてしまい、全く回らないので、とりあえずcodeで進める。
         !?mainの流動計算の自動微分の設定まで終わった
 

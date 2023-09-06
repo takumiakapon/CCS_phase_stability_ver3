@@ -364,7 +364,7 @@ module mod_main_calc
         end do
         
         call outxs(myu_L,kakuninn)
-        write(*,*) kakuninn!!粘度よさそう
+        !write(*,*) kakuninn!!粘度よさそう
 
         !!相対浸透率について
         do i=1,n
@@ -716,7 +716,7 @@ module mod_main_calc
 
 
         !?gridn
-        do i=j,com_2phase+com_ion
+        do j=1,com_2phase+com_ion
             g(n*eq-eq+com_2phase+j)=(-1.0d0/dt)*(Nc(j,n)*fai(n)-Nc0old(j,n)*faiold(n))
             if (phase(n) == 1 .or. phase(n) == 2) then !?液相あり
                 g(n*eq-eq+com_2phase+j)=&
