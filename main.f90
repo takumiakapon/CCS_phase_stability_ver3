@@ -630,8 +630,7 @@ program main
         Pold = P
         Ncold = Nc
         Nmold = Nm
-        !?visual studio communityだと謎にヒープが壊れてしまい、全く回らないので、とりあえずcodeで進める。
-        !?mainの流動計算の自動微分の設定まで終わった
+        !?タイムループ回った！次回からは検証に向けて条件整える
 
         
     end do
