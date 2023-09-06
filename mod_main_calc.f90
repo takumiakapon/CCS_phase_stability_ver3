@@ -56,6 +56,8 @@ module mod_main_calc
         !type(diffs),dimension(n)::Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Qten
         type(diffs),dimension(n)::theta1,theta2,theta3,theta4,theta5,theta6,theta7,theta8,theta9,thetaten
         type(diffs)::rs(chemi+mine,n),rs_sum(com_all,n)
+        real(8)::AA(mine)
+
         allocate(x0(n*eq+q_judge))
 
         !!自動微分の下準備
@@ -530,10 +532,15 @@ module mod_main_calc
             wc0(14,i)=w140(i)
         end do
 
-        !!比表面積(初期の比表面積をすべて一緒にしちゃってる)
+        !!比表面積
+        AA(1)=AA1
+        AA(2)=AA2
+        AA(3)=AA3
+        AA(4)=AA4
+        AA(5)=AA5
         do i=1,n
             do j=1,com_mine
-                Ac(j,i)=AA1*Nm(j,i)/Nmini(j)
+                Ac(j,i)=AA(j)*Nm(j,i)/Nmini(j)
             end do
         end do
 
