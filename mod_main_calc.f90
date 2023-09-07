@@ -368,12 +368,22 @@ module mod_main_calc
 
         !!相対浸透率について
         do i=1,n
-            do j=1,20
-                if (Swd(j) < Sw0(i) .and. Sw0(i) <= Swd(j+1)) then
-                    krg(i)=(krgd(j+1)-krgd(j))/(Swd(j+1)-Swd(j))*(Sw(i)-Swd(j))+krgd(j)
-                    krw(i)=(krwd(j+1)-krwd(j))/(Swd(j+1)-Swd(j))*(Sw(i)-Swd(j))+krwd(j)
-                end if
-            end do
+            !do j=1,20
+            !    if (Swd(j) < Sw0(i) .and. Sw0(i) <= Swd(j+1)) then
+            !        krg(i)=(krgd(j+1)-krgd(j))/(Swd(j+1)-Swd(j))*(Sw(i)-Swd(j))+krgd(j)
+            !        krw(i)=(krwd(j+1)-krwd(j))/(Swd(j+1)-Swd(j))*(Sw(i)-Swd(j))+krwd(j)
+            !    end if
+            !end do
+            if (Sw0(i) < Swc) then
+                call residualvectorset4(0.0d0,n*eq+q_judge,krw(i))
+                call residualvectorset4(krg_swc,n*eq+q_judge,krg(i))
+            else if (1.0d0-Sgr < Sw0(i)) then
+                call residualvectorset4(krw_sgr,n*eq+q_judge,krw(i))
+                call residualvectorset4(0.0d0,n*eq+q_judge,krg(i))
+            else
+                krw(i)=krw_sgr*((Sw(i)-Swc)/(1.0d0-Swc-Sgr))**nw
+                krg(i)=krg_swc*((1.0d0-Sw(i)-Sgr)/(1.0d0-Swc-Sgr))**ng
+            end if
         end do
 
         !!孔隙率について
@@ -460,13 +470,13 @@ module mod_main_calc
         !!化学反応======================================
         !!速度定数[mol/m^3/s]
         do i=1,chemi
-            ks(i) =1.0d0*10.0d0**(-3.0d0) !化学反応
+            ks(i) =1.0d0*10.0d0**(0.0d0) !化学反応
         end do
         ks(6)=10.0d0**(-9.12d0) !アノーサイト
-        ks(7)=10.0d0**(-12.7d0) !エンスタタイト
+        ks(7)=10.0d0**(-12.0d0)!10.0d0**(-12.7d0) !エンスタタイト
         ks(8)=10.0d0**(-10.64d0) !フォルステライト
         ks(9)=10.0d0**(-5.81d0) !カルサイト
-        ks(10)=10.0d0**(-9.34d0) !マグネサイト
+        ks(10)=10.0d0**(-12.0d0)!10.0d0**(-9.34d0) !マグネサイト
         
         
         !!平衡定数

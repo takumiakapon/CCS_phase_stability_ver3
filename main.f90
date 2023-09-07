@@ -21,7 +21,7 @@ program main
     implicit none
     
     !!初期計算用
-    integer::i,j,jj,iteration,time,phase_judge0,phase0,ii,year,q_judge
+    integer::i,j,jj,iteration,time,phase_judge0,phase0,ii,year,q_judge,hour,day
     real(8),allocatable,dimension(:,:)::amat,cmat,emat,gmat
     real(8),allocatable,dimension(:)::bmat,z0,k0,lnk0,x0,y0,w0,alpha0,dmat,fmat,hmat,theta0
     real(8)::V0,L0,P0,P0old,error,wt,lumda,z_factor0
@@ -64,6 +64,7 @@ program main
     
     
     P0 =iniPressure
+    
     
     !平衡定数の初期予測
     lnk0(1) = -5.0d0
@@ -213,7 +214,7 @@ program main
     end if
     
     
-    write(*,*) phase_judge0,'phase'
+    !write(*,*) phase_judge0,'phase'
     
     
     
@@ -275,7 +276,7 @@ program main
     !write(10,*) Nm0
     
     
-    write(*,*) 'V',V0
+    !write(*,*) 'V',V0
     !write(*,*) 'L:',L0
     !write(*,*) Sw0
     !write(*,*) Nc0
@@ -372,6 +373,8 @@ program main
     end if
     
     
+    
+    
     !write(*,*) Nc0
     write(14,*) phase_judge0,'phases'
     write(14,*) P0,'pressure'
@@ -417,11 +420,11 @@ program main
     !write(*,*) sum(z0)
     
     
-    
     !!ようやくメイン計算！！！
     
-    do year=1,10!000
-    !    
+    do year=1,1!50!000
+    do day =1,30
+    do hour =1,24    
     !    !!相安定解析
         do ii=1,5 !gridごとに相安定性解析するよ
             do i=1,com_2phase+com_ion
@@ -549,7 +552,7 @@ program main
             end do
 
             
-                !write(*,*) ii,'grid',phase_judge(ii),'phase'
+                write(30,*) ii,'grid',phase_judge(ii),'phase'
         end do
         
         
@@ -561,7 +564,7 @@ program main
         end if
         q_judge = 1 !!とりあえず流量制御で固定
 
-        do iteration=1,10!00
+        do iteration=1,100
             call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,Nmini,P,Pold,Pb0,fai,q_judge,phase_judge,phase,&
                             Swd,krgd,krwd,chemi_mat,fxs)
 
@@ -623,16 +626,25 @@ program main
 
         end do
 
-        do i=1,n
-            write(*,*) year,iteration,P(i)
-        end do
+        
 
         Pold = P
         Ncold = Nc
         Nmold = Nm
         !?タイムループ回った！次回からは検証に向けて条件整える
-
+    end do
+    do i=1,n
+        write(*,*) day,iteration,P(i)
+    end do
+    
+    write(31,*) P(1)
+    write(32,*) P(2)
+    write(33,*) P(3)
+    write(34,*) P(4)
+    write(35,*) P(5)
         
+    end do
+    
     end do
     
         
