@@ -423,7 +423,7 @@ program main
     !!ようやくメイン計算！！！
     
     do year=1,1!50!000
-    do day =1,3!0
+    do day =1,150
     do hour =1,24    
     !    !!相安定解析
         do ii=1,5 !gridごとに相安定性解析するよ
@@ -625,7 +625,7 @@ program main
             
 
         end do
-
+        
         
 
         Pold = P
@@ -634,8 +634,9 @@ program main
         !?タイムループ回った！次回からは検証に向けて条件整える
     end do
     do i=1,n
-        write(*,*) day,iteration,P(i)
+            write(*,*) day,iteration,P(i)
     end do
+    
     
     write(31,*) P(1)
     write(32,*) P(2)

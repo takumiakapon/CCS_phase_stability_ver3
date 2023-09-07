@@ -337,7 +337,7 @@ module mod_ini_chemical
         
         !!速度定数[mol/m^3/s]------------ここでは初期条件で平衡にするためなので適当
         do i=1,chemi+mine
-            ks(i) =1.0d0*10.0d0**(-7.0d0)
+            ks(i) =1.0d0*10.0d0**(-6.0d0)
         end do
         
         
