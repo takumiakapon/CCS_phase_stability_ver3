@@ -423,7 +423,7 @@ program main
     !!ようやくメイン計算！！！
     
     do year=1,1!50!000
-    do day =1,30
+    do day =1,3!0
     do hour =1,24    
     !    !!相安定解析
         do ii=1,5 !gridごとに相安定性解析するよ
