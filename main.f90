@@ -46,9 +46,10 @@ program main
     
     call file_open
     
-    allocate(amat(com_2phase,com_2phase),z0(com_2phase+com_ion),k0(com_2phase),lnk0(com_2phase)&
+    allocate(amat(com_2phase,com_2phase),bmat(com_2phase),z0(com_2phase+com_ion),k0(com_2phase),lnk0(com_2phase)&
         ,x0(com_2phase),y0(com_2phase+com_ion),w0(com_2phase),alpha0(com_2phase),cmat(com_2phase+1,com_2phase+1)&
-        ,chemi_mat(chemi+mine,com_all),emat(eq,eq),gmat(n*eq,n*eq),hmat(n*eq))
+        ,dmat(com_2phase+1),chemi_mat(chemi+mine,com_all),emat(eq,eq),fmat(eq),gmat(n*eq,n*eq),hmat(n*eq)&
+        ,theta0(chemi+mine))
      
     !!相対浸透率のテーブルデータのインプット
     do i=1,21
@@ -88,14 +89,14 @@ program main
     
     !!!検証 これ
     z0=0.0000d0
-    z0(1)=0.98295661537557144!0.98294928708382090!0.98294  !H2O
-    z0(2)=3.4817505806941896E-007!1.8992194875568811E-005!0.00001 !CO2
-    z0(3)=1.6990282021069454E-002!1.6990001958143271E-002!0.01699 !CH4
-    z0(5)=6.1817158796360923E-011!6.3674605894641180E-007!1E-5 !H+
-    z0(6)=2.8331115169197601E-005!1.1005716001412855E-006!1E-5 !HCO3-
-    z0(7)=1.3212068937893931E-006!9.9072355493762180E-006!1E-5 !CO32-
-    z0(8)=1.0885035523759696E-006!9.9072356593756316E-006!1E-5 !OH-
-    z0(10)=1.1030901971414173E-005!1.0092765812147074E-005!1E-5 !Mg2+
+    z0(1)=0.982!0.98295661537557144!0.98294928708382090!0.98294  !H2O
+    z0(2)=2.34d0*10.0d0**(-7.0d0)!3.4817505806941896E-007!1.8992194875568811E-005!0.00001 !CO2
+    z0(3)=1.70d0*10.0d0**(-2.0d0)!1.6990282021069454E-002!1.6990001958143271E-002!0.01699 !CH4
+    z0(5)=6.57d0*10.0d0**(-11.0d0)!6.1817158796360923E-011!6.3674605894641180E-007!1E-5 !H+
+    z0(6)=1.76d0*10.0d0**(-5.0d0)!2.8331115169197601E-005!1.1005716001412855E-006!1E-5 !HCO3-
+    z0(7)=2.75d0*10.0d0**(-7.0d0)!1.3212068937893931E-006!9.9072355493762180E-006!1E-5 !CO32-
+    z0(8)=2.60d0*10.0d0**(-7.0d0)!1.0885035523759696E-006!9.9072356593756316E-006!1E-5 !OH-
+    z0(10)=4.23d0*10.0d0**(-6.0d0)!1.1030901971414173E-005!1.0092765812147074E-005!1E-5 !Mg2+
     z0(11)=1.0d0-z0(1)-z0(2)-z0(3)-z0(5)-z0(6)-z0(7)-z0(8)-z0(10) !SiO2
     
     !!ケースこれ
@@ -276,303 +277,312 @@ program main
     !write(10,*) Nm0
     
     
-    !write(*,*) 'V',V0
-    !write(*,*) 'L:',L0
-    !write(*,*) Sw0
-    !write(*,*) Nc0
+    write(*,*) 'V',V0
+    write(*,*) 'L:',L0
+    write(*,*) Sw0
+    write(*,*) Nc0
     
     !!ここまでは良さそう
     
     !液相がある場合、電離
-    if (phase_judge0 == 2 .or. phase0 == 1) then
-        do time =1,300!00 !time iteration
+    !if (phase_judge0 == 2 .or. phase0 == 1) then
+        do time =1,100!00 !time iteration
             write(11,*) 'day',time
             do iteration =1,100
-                write(11,*) iteration
-                call ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,fai0,chemi_mat,phase_judge0,z0,theta0,z_factor0,fxs)
-                call jacobian_mat(fxs,emat)
-                call outxs(fxs,fmat)
-                fmat = -fmat
+    !            write(11,*) iteration
+    !            call ini_chemi(P0,P0old,Nc0,Nc0old,Nm0,Nm0old,lnk0,V0,Sw0,fai0,chemi_mat,phase_judge0,z0,theta0,z_factor0,fxs)
+    !            call jacobian_mat(fxs,emat)
+    !            call outxs(fxs,fmat)
+    !            fmat = -fmat
                 do i=1,eq
                     !write(10,*) (emat(i,j),j=1,eq)
                 end do
                 do i=1,com_2phase
-                    if (Nc0(i) == 0.0d0) then !存在しない成分は計算しないよ
+    !                if (Nc0(i) == 0.0d0) then !存在しない成分は計算しないよ
             !            write(10,*) 'a'
                         do j =1,eq
-                            emat(i,j) = 0.0d0
-                            emat(j,i) = 0.0d0
+    !                        emat(i,j) = 0.0d0
+    !                        emat(j,i) = 0.0d0
                         end do
-                        emat(i,i) = 1.0d0
-                        fmat(i) =0.0d0
-                    end if
+    !                    emat(i,i) = 1.0d0
+    !                    fmat(i) =0.0d0
+    !                end if
                 end do
                 do i=1,com_2phase+com_ion
-                    if (Nc0(i) == 0.0d0) then !存在しない成分は計算しないよ
+    !                if (Nc0(i) == 0.0d0) then !存在しない成分は計算しないよ
             !            write(10,*) 'i'
                         do j =1,eq
-                            emat(i+chemi,j) = 0.0d0
-                            emat(j,i+chemi) = 0.0d0
+    !                        emat(i+chemi,j) = 0.0d0
+    !                        emat(j,i+chemi) = 0.0d0
                         end do
-                        emat(i+chemi,i+chemi) = 1.0d0
-                        fmat(i+chemi) =0.0d0
-                    end if
+    !                    emat(i+chemi,i+chemi) = 1.0d0
+    !                    fmat(i+chemi) =0.0d0
+    !                end if
                 end do
-                if (phase0 == 1) then !水相だけの時はrachford解かないよ
+    !            if (phase0 == 1) then !水相だけの時はrachford解かないよ
             !        write(10,*) 'u'
                     do i =1,eq
-                        emat(i,eq) = 0.0d0
-                        emat(eq,i) = 0.0d0
+    !                    emat(i,eq) = 0.0d0
+    !                    emat(eq,i) = 0.0d0
                     end do
-                    emat(eq,eq) = 1.0d0
-                    fmat(eq) = 0.0d0
-                end if
+    !                emat(eq,eq) = 1.0d0
+    !                fmat(eq) = 0.0d0
+    !            end if
                 do i=1,eq
                     !write(10,*) (emat(i,j),j=1,eq)
                 end do
             
-                call pvgauss(eq,emat,fmat)
+    !            call pvgauss(eq,emat,fmat)
                 
                 
                 do i=1,com_2phase
-                    lnk0(i) = lnk0(i) + fmat(i)
-                    k0(i) = exp(lnk0(i))
+    !                lnk0(i) = lnk0(i) + fmat(i)
+    !                k0(i) = exp(lnk0(i))
                 end do
                 do i=1,com_2phase+com_ion
-                    Nc0(i) = Nc0(i) + fmat(i+com_2phase)
+    !                Nc0(i) = Nc0(i) + fmat(i+com_2phase)
                 end do
                 do i=1,com_mine
-                    Nm0(i) = Nm0(i) + fmat(i+com_2phase+com_2phase+com_ion)
+    !                Nm0(i) = Nm0(i) + fmat(i+com_2phase+com_2phase+com_ion)
                 end do
-                P0 = P0 + fmat(eq-1)
-                v0 = v0 + fmat(eq)
-                error = sqrt(dot_product(fmat,fmat))
-                write(10,*) time,iteration,error,'---------------------------------------------------'
+    !            P0 = P0 + fmat(eq-1)
+    !            v0 = v0 + fmat(eq)
+    !            error = sqrt(dot_product(fmat,fmat))
+    !            write(10,*) time,iteration,error,'---------------------------------------------------'
                  !write(*,*) 'V:',V0
                  !write(*,*) p0
                 do i=1,eq
                     !write(10,*) (emat(i,j),j=1,eq)
                 end do
-                if (error < 10.0d0**(-5.0d0)) then
-                    goto 10
-                end if
+    !            if (error < 10.0d0**(-5.0d0)) then
+    !                goto 10
+    !            end if
                 
             end do
-10          &
-            Nc0old = Nc0
-            Nm0old = Nm0
-            P0 = inipressure
-            P0old = P0
+!10          &
+            do j=1,com_2phase+com_ion
+    !            Nc0old(j) = Nc0(j)
+            end do
+            do j=1,com_mine
+    !            Nm0old(j) = Nm0(j)
+            end do
+            !P0 = inipressure
+    !        P0old = P0
             
             
-            if (iteration == 100) then
-                write(*,*) '収束せず'
-            end if
+    !        if (iteration == 100) then
+    !            write(*,*) '収束せず'
+    !        end if
             
         end do
-    end if
+    !end if
     
     
     
     
     !write(*,*) Nc0
-    write(14,*) phase_judge0,'phases'
-    write(14,*) P0,'pressure'
-    write(14,*) 'z_factor:',z_factor0
-    write(14,*) 'V0',V0,'Sw',Sw0
-    write(14,*) 'Nc','z'
+    !write(14,*) phase_judge0,'phases'
+    !write(14,*) P0,'pressure'
+    !write(14,*) 'z_factor:',z_factor0
+    !write(14,*) 'V0',V0,'Sw',Sw0
+    !write(14,*) 'Nc','z'
     do i=1,com_2phase+com_ion
-        write(14,*) Nc0(i),z0(i)
+    !    write(14,*) Nc0(i),z0(i)
     end do
     do i=1,com_mine
-        write(14,*) Nm0(i)
+    !    write(14,*) Nm0(i)
     end do
-    write(14,*) 'theta'
-    write(14,*) theta0
+    !write(14,*) 'theta'
+    !write(14,*) theta0
     
     
     !!初期の結果の引継ぎ(grid1→5)
-    V=V0
-    L=1.0d0-V
-    do i=1,com_2phase+com_ion
-        Nc(i,:)=Nc0(i)
-        z(i,:)=z0(i)
+    do i=1,n
+    !    V(i)=V0
+    !    L(i)=1.0d0-V(i)
+        do j=1,com_2phase+com_ion
+    !        Nc(j,i)=Nc0(j)
+    !        Ncold(j,i)=Nc(j,i)
+    !        z(j,i)=z0(j)
+        end do
+        do j=1,com_2phase
+    !        lnk(j,i)=lnk0(j)
+        end do
+        do j=1,com_mine
+    !        Nm(j,i)=Nm0(j)
+    !        Nmini(j)=Nm0(j)
+    !        Nmold(j,i)=Nm(j,i)
+        end do
+    !    fai(i)=fai0
+    !    P(i)=P0
+    !    Pold(i)=P(i)
+    !    phase_judge(i)=phase_judge0
     end do
-    do i=1,com_2phase
-        lnk(i,:)=lnk0(i)
-    end do
-    do i=1,com_mine
-        Nm(i,:)=Nm0(i)
-        Nmini(i)=Nm0(i)
-    end do
-    fai=fai0
-    P=P0
-    Pold=P
-    Pb0 = P(1)
-    Ncold=Nc
-    Nmold=Nm
-    phase_judge=phase_judge0
+    !Pb0 = P(1)
     do i=1,n
         !write(*,*) (z(j,i),j=1,com_2phase+com_ion)
         !write(*,*) (lnk(j,i),j=1,com_2phase)
     end do
     
     !write(*,*) sum(z0)
-    
+    do i=1,n
+        P=100
+    end do
     
     !!ようやくメイン計算！！！
     
     do year=1,1!50!000
-    do day =1,150
+    do day =1,15!0
     do hour =1,24    
     !    !!相安定解析
         do ii=1,5 !gridごとに相安定性解析するよ
             do i=1,com_2phase+com_ion
-                z0(i)=z(i,ii)
+    !            z0(i)=z(i,ii)
             end do
             do i=1,com_2phase
-                k0(i)=exp(lnk(i,ii))
+    !            k0(i)=exp(lnk(i,ii))
             end do
             
         
             !相安定解析の主要変数の初期値
-            if (z0(1) >= z0(2)+z0(3)+z0(4)) then !液相から気相が出てくるパターン
+    !        if (z0(1) >= z0(2)+z0(3)+z0(4)) then !液相から気相が出てくるパターン
                 do i =1,com_2phase
-                    w0(i) = z0(i)*k0(i)
+    !                w0(i) = z0(i)*k0(i)
                 end do
-            else !気相から液相が出てくるパターン
+    !        else !気相から液相が出てくるパターン
                 do i=1,com_2phase
-                    w0(i) = z0(i)/k0(i)
+    !                w0(i) = z0(i)/k0(i)
                 end do
-            end if
+    !        end if
         !    !write(*,*) w0
-            V0 = 1.0d0 - z0(1)
-            L0 = 1.0d0 -V0
+    !        V0 = 1.0d0 - z0(1)
+    !        L0 = 1.0d0 -V0
             do i=1,com_2phase
-                alpha0(i) = 2.0d0 *dsqrt(w0(i))
+    !            alpha0(i) = 2.0d0 *dsqrt(w0(i))
             end do
         !    write(*,*) alpha0
         !    
         !
             do iteration =1,100
-                if ((z0(1) >= z0(2)+z0(3)+z0(4))) then
+    !            if ((z0(1) >= z0(2)+z0(3)+z0(4))) then
                     !write(*,*) 'liquid'
                     !write(*,*) 'main',ii
-                    call phase_stability_liquid(alpha0,P0,z0,fxs)
+    !                call phase_stability_liquid(alpha0,P0,z0,fxs)
                     !write(*,*) 'a'
-                else
+    !            else
                     !write(*,*) 'main',ii
                     !write(*,*) 'vapor'
-                    call phase_stability_vapor(alpha0,P0,z0,fxs)
-                end if
+    !                call phase_stability_vapor(alpha0,P0,z0,fxs)
+    !            end if
         !write(*,*) 'main',ii
-                
-                call jacobian_mat(fxs,amat)
-                call outxs(fxs,bmat)
-                bmat = -bmat
+    !            amat(:,:)=0.0d0
+    !            bmat(:) =0.0d0
+    !            call jacobian_mat(fxs,amat)
+    !            call outxs(fxs,bmat)
+    !            bmat = -bmat
                 
                 
                 
                 
                 do i=1,com_2phase
-                    if (z0(i) == 0.0d0) then !存在しない成分は計算しないよ
+    !                if (z0(i) == 0.0d0) then !存在しない成分は計算しないよ
                         do j =1,com_2phase
-                            amat(i,j) = 0.0d0
-                            amat(j,i) = 0.0d0
+    !                        amat(i,j) = 0.0d0
+    !                        amat(j,i) = 0.0d0
                         end do
-                        amat(i,i) = 1.0d0
-                        bmat(i) =0.0d0
-                    end if
+    !                    amat(i,i) = 1.0d0
+    !                    bmat(i) =0.0d0
+    !                end if
                 end do
                 do i=1,com_2phase
                 !    write(*,*) (amat(i,j),j=1,com_2phase)
                 end do
-                call pvgauss(com_2phase,amat,bmat)
+    !            call pvgauss(com_2phase,amat,bmat)
                 
                 do i=1,com_2phase
-                    alpha0(i) =alpha0(i) +bmat(i)
-                    w0(i) = (alpha0(i) / 2.0d0) ** 2.0d0
+    !                alpha0(i) =alpha0(i) +bmat(i)
+    !                w0(i) = (alpha0(i) / 2.0d0) ** 2.0d0
                 end do
             
-                error = sqrt(dot_product(bmat,bmat))
-                !write(*,*) error,iteration
-                if (error < 10.0d0**(-5.0d0)) then
-                    exit
-                end if
+    !            error = sqrt(dot_product(bmat,bmat))
+               !write(*,*) error,iteration
+    !            if (error < 10.0d0**(-5.0d0)) then
+    !                exit
+    !            end if
             end do
             
-            wt =0.0d0
+    !        wt =0.0d0
             do i=1,com_2phase
-                wt =wt+w0(i)
+    !            wt =wt+w0(i)
             end do
             
             !!write(*,*)(log(wt))
-            lumda =1.0d0 -log(wt)
-            if (lumda >= 1.0d0) then
-                phase_judge(ii) = 1
-                if (z0(1) > z0(2) +z0(3)+z0(4)) then
-                    V0 = 0.0d0
-                    L0 = 1.0d0 - V0
-                    phase(ii) = 1 !液相のみ
-                else
-                    V0 = 1.0d0
-                    L0 = 1.0d0 - V0
-                    phase(ii) = 3 !気相のみ
+    !        lumda =1.0d0 -log(wt)
+    !        if (lumda >= 1.0d0) then
+    !            phase_judge(ii) = 1
+    !            if (z0(1) > z0(2) +z0(3)+z0(4)) then
+    !                V0 = 0.0d0
+    !                L0 = 1.0d0 - V0
+    !                phase(ii) = 1 !液相のみ
+    !            else
+    !                V0 = 1.0d0
+    !                L0 = 1.0d0 - V0
+    !                phase(ii) = 3 !気相のみ
             !        !write(*,*) V0
-                end if
-            else
-                phase_judge(ii) = 2
-                phase(ii) = 2 !2相
-                v0 = z0(2) + z0(3) + z0(4)
-                L0 = 1.0d0 - v0
-                if (z0(1) >= (z0(2)+z0(3)+z0(4))) then !液相から気相が出てくるパターン
+    !            end if
+    !        else
+    !            phase_judge(ii) = 2
+    !            phase(ii) = 2 !2相
+    !            v0 = z0(2) + z0(3) + z0(4)
+    !            L0 = 1.0d0 - v0
+    !            if (z0(1) >= (z0(2)+z0(3)+z0(4))) then !液相から気相が出てくるパターン
                     do i=1,com_2phase
-                        if (z0(i) == 0d0) then
-                            k0(i) = 1.0d0
-                            lnk0(i) = log(k0(i))
-                        else
-                            k0(i) = w0(i) / z0(i)
-                            lnk0(i) = log(k0(i))
-                        end if
+    !                    if (z0(i) == 0d0) then
+    !                        k0(i) = 1.0d0
+    !                        lnk0(i) = log(k0(i))
+    !                    else
+    !                        k0(i) = w0(i) / z0(i)
+    !                        lnk0(i) = log(k0(i))
+    !                    end if
                     end do
-                else !気相から液相が出てくるパターン
+    !            else !気相から液相が出てくるパターン
                     do i=1,com_2phase
-                        if (z0(i)== 0.0d0) then
-                            k0(i) = 5.0
-                            lnk0(i) = log(k0(i))
-                        else
-                            k0(i) = z0(i) / w0(i)
-                            lnk0(i) = log(k0(i))
-                        end if
+    !                    if (z0(i)== 0.0d0) then
+    !                        k0(i) = 5.0
+    !                        lnk0(i) = log(k0(i))
+    !                    else
+    !                        k0(i) = z0(i) / w0(i)
+    !                        lnk0(i) = log(k0(i))
+    !                    end if
                     end do
-                end if
-            end if
+    !            end if
+    !        end if
             do i=1,com_2phase
-                lnk(i,ii) = lnk0(i)
+    !            lnk(i,ii) = lnk0(i)
             end do
 
             
-                write(30,*) ii,'grid',phase_judge(ii),'phase'
+    !            write(30,*) ii,'grid',phase_judge(ii),'phase'
         end do
         
         
         !!mainの流動計算
-        if (year < 4) then
-            q_judge = 1 !流量制御
-        else
-            q_judge = 0 !孔底圧力制御
-        end if
-        q_judge = 1 !!とりあえず流量制御で固定
+        !if (year < 4) then
+        !    q_judge = 1 !流量制御
+        !else
+        !    q_judge = 0 !孔底圧力制御
+        !end if
+        !q_judge = 1 !!とりあえず流量制御で固定
 
         do iteration=1,100
-            call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,Nmini,P,Pold,Pb0,fai,q_judge,phase_judge,phase,&
-                            Swd,krgd,krwd,chemi_mat,fxs)
+        !    call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,Nmini,P,Pold,Pb0,fai,q_judge,phase_judge,phase,&
+        !                    Swd,krgd,krwd,chemi_mat,fxs)
 
-            deallocate(gmat,hmat)
-            allocate(gmat(n*eq+q_judge,n*eq+q_judge),hmat(n*eq+q_judge))
-            call jacobian_mat(fxs,gmat)
-            call outxs(fxs,hmat)
-            hmat=-hmat
+        !    deallocate(gmat,hmat)
+        !    allocate(gmat(n*eq+q_judge,n*eq+q_judge),hmat(n*eq+q_judge))
+        !    call jacobian_mat(fxs,gmat)
+        !    call outxs(fxs,hmat)
+        !    hmat=-hmat
 
 
             do i=1,n*eq+q_judge
@@ -580,18 +590,18 @@ program main
             end do
             do i=1,n
                 do j=1,com_2phase+com_ion
-                    if (Nc(j,i) == 0) then
+        !            if (Nc(j,i) == 0) then
                         do jj=1,eq
-                            !gmat(i*eq-eq+j+com_2phase,jj) = 0.0d0
-                            !gmat(jj,i*eq-eq+j+com_2phase) = 0.0d0
-                            !gmat(i*eq-eq+j+com_2phase,i*eq-eq+j+com_2phase) = 10000.0d0 !?存在しない成分は計算しない？
+        !                    gmat(i*eq-eq+j+com_2phase,jj) = 0.0d0
+        !                    gmat(jj,i*eq-eq+j+com_2phase) = 0.0d0
+        !                    gmat(i*eq-eq+j+com_2phase,i*eq-eq+j+com_2phase) = 1.0d0 !?存在しない成分は計算しない？
                         end do
-                    end if
+        !            end if
                 end do
             end do
             
 
-            call pvgauss(n*eq+q_judge,gmat,hmat)
+        !    call pvgauss(n*eq+q_judge,gmat,hmat)
             !!#TODO相の数とか、成分の数で分岐
             do i=1,n*eq+q_judge
             !    write(13,*) (gmat(i,j),j=1,n*eq+q_judge),hmat(i)
@@ -601,26 +611,26 @@ program main
             !!更新
             do i=1,n
                 do j=1,com_2phase
-                    lnk(j,i) = lnk(j,i) + hmat(i*eq-eq+j)
+        !            lnk(j,i) = lnk(j,i) + hmat(i*eq-eq+j)
                 end do
                 do j=1,com_2phase+com_ion
-                    Nc(j,i) = Nc(j,i) + hmat(i*eq-eq+com_2phase+j)
+        !            Nc(j,i) = Nc(j,i) + hmat(i*eq-eq+com_2phase+j)
                 end do
                 do j=1,com_mine
-                    Nm(j,i) = Nm(j,i) + hmat(i*eq-eq+com_2phase+com_2phase+com_ion+j)
+        !            Nm(j,i) = Nm(j,i) + hmat(i*eq-eq+com_2phase+com_2phase+com_ion+j)
                 end do
-                P(i) = P(i) + hmat(i*eq-1)
-                V(i) = V(i) + hmat(i*eq)
+        !        P(i) = P(i) + hmat(i*eq-1)
+        !        V(i) = V(i) + hmat(i*eq)
             end do
-            if (q_judge == 1) then
-                Pb0 = Pb0 + hmat(n*eq+q_judge)
-            end if 
-            error = sqrt(dot_product(hmat,hmat))
+        !    if (q_judge == 1) then
+        !        Pb0 = Pb0 + hmat(n*eq+q_judge)
+        !    end if 
+        !    error = sqrt(dot_product(hmat,hmat))
 
             !write(*,*) iteration,error
-            if (error < 10.0d0**(-5.0d0)) then
-                exit
-            end if
+        !    if (error < 10.0d0**(-5.0d0)) then
+        !        exit
+        !    end if
 
             
 
@@ -628,13 +638,13 @@ program main
         
         
 
-        Pold = P
-        Ncold = Nc
-        Nmold = Nm
+        !Pold = P
+        !Ncold = Nc
+        !Nmold = Nm
         !?タイムループ回った！次回からは検証に向けて条件整える
     end do
     do i=1,n
-            write(*,*) day,iteration,P(i)
+    !        write(*,*) day,iteration!,P(i)
     end do
     
     

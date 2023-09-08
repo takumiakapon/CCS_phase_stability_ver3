@@ -337,7 +337,7 @@ module mod_ini_chemical
         
         !!速度定数[mol/m^3/s]------------ここでは初期条件で平衡にするためなので適当
         do i=1,chemi+mine
-            ks(i) =1.0d0*10.0d0**(-6.0d0)
+            ks(i) =1.0d0*10.0d0**(-3.0d0)
         end do
         
         
@@ -426,7 +426,7 @@ module mod_ini_chemical
             !if (abs(theta0(i)-1.0d0) < 10.0d0) then
             !    call residualvectorset3(eq,rs(i))
             !else
-                rs(i)=ks(i)*(1.0d0-theta(i))*fai*Sw!*min
+                rs(i)=ks(i)*(1.0d0-theta(i))*fai*Sw*min
             !end if
         end do
         
@@ -468,6 +468,4 @@ module mod_ini_chemical
     end module
     
     
-    !!とりあえず初期計算はできているけれど、化学平衡状態にならない。モル数がマイナスになっちゃう。どっかの計算おかしいかも。明日化学反応計算考える。
-    !!反応を起こさない場合の計算のスキップとか、学部の時と変えている場所を中心にみる
-    !!Q/keが1に近づいても、それを通り過ぎてマイナスになっちゃう
+    
