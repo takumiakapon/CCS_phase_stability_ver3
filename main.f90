@@ -126,7 +126,7 @@ program main
     V0 = 1.0d0 - z0(1)
     L0 = 1.0d0 -V0
     do i=1,com_2phase
-        alpha0(i) = 2.0d0 *dsqrt(w0(i))
+        alpha0(i) = 2.0d0 *sqrt(w0(i))
     end do
     
     
@@ -455,115 +455,112 @@ program main
                 end do
             end if
         !    !write(*,*) w0
-    !        V0 = 1.0d0 - z0(1)
-    !        L0 = 1.0d0 -V0
-    !        do i=1,com_2phase
-    !            alpha0(i) = 2.0d0 *dsqrt(w0(i))
-    !        end do
-        !    write(*,*) alpha0
-        !    
-        !
-    !        do iteration =1,100
-    !            if ((z0(1) >= z0(2)+z0(3)+z0(4))) then
+            V0 = 1.0d0 - z0(1)
+            L0 = 1.0d0 -V0
+            do i=1,com_2phase
+                alpha0(i) = 2.0d0 *sqrt(w0(i))
+            end do
+            !write(*,*) alpha0
+        
+        
+            do iteration =1,100
+                if ((z0(1) >= z0(2)+z0(3)+z0(4))) then
                     !write(*,*) 'liquid'
-                    !write(*,*) 'main',ii
-    !                call phase_stability_liquid(alpha0,P0,z0,fxs)
-                    !write(*,*) 'a'
-    !            else
+                    write(*,*) 'main',ii
+                    call phase_stability_liquid2(alpha0,P0,z0,fxs) !?こいつがなんか悪そう
+                    write(*,*) 'a'
+                else
                     !write(*,*) 'main',ii
                     !write(*,*) 'vapor'
-    !                call phase_stability_vapor(alpha0,P0,z0,fxs)
-    !            end if
+            !        call phase_stability_vapor(alpha0,P0,z0,fxs)
+                end if
         !write(*,*) 'main',ii
-    !            amat(:,:)=0.0d0
-    !            bmat(:) =0.0d0
-    !            call jacobian_mat(fxs,amat)
-    !            call outxs(fxs,bmat)
-    !            bmat = -bmat
                 
+        !        call jacobian_mat(fxs,amat)
+        !        call outxs(fxs,bmat)
+        !        bmat = -bmat
+                          
                 
-                
-                
-    !            do i=1,com_2phase
-    !                if (z0(i) == 0.0d0) then !存在しない成分は計算しないよ
-    !                    do j =1,com_2phase
-    !                        amat(i,j) = 0.0d0
-    !                        amat(j,i) = 0.0d0
-    !                    end do
-    !                    amat(i,i) = 1.0d0
-    !                    bmat(i) =0.0d0
-    !                end if
-    !            end do
-    !            do i=1,com_2phase
+        !        do i=1,com_2phase
+        !            if (z0(i) == 0.0d0) then !存在しない成分は計算しないよ
+        !                do j =1,com_2phase
+        !                    amat(i,j) = 0.0d0
+        !                    amat(j,i) = 0.0d0
+        !                end do
+        !                amat(i,i) = 1.0d0
+        !                bmat(i) =0.0d0
+        !            end if
+        !        end do
+                !do i=1,com_2phase
                 !    write(*,*) (amat(i,j),j=1,com_2phase)
-    !            end do
-    !            call pvgauss(com_2phase,amat,bmat)
+                !end do
+        !        call pvgauss(com_2phase,amat,bmat)
                 
-    !            do i=1,com_2phase
-    !                alpha0(i) =alpha0(i) +bmat(i)
-    !                w0(i) = (alpha0(i) / 2.0d0) ** 2.0d0
-    !            end do
+        !        do i=1,com_2phase
+        !            alpha0(i) =alpha0(i) +bmat(i)
+        !            w0(i) = (alpha0(i) / 2.0d0) ** 2.0d0
+        !        end do
             
-    !            error = sqrt(dot_product(bmat,bmat))
+        !        error = sqrt(dot_product(bmat,bmat))
                !write(*,*) error,iteration
-    !            if (error < 10.0d0**(-5.0d0)) then
-    !                exit
-    !            end if
+        !        if (error < 10.0d0**(-5.0d0)) then
+        !            exit
+        !        end if
             end do
             
-    !        wt =0.0d0
-    !        do i=1,com_2phase
-    !            wt =wt+w0(i)
-    !        end do
+        !    wt =0.0d0
+        !    do i=1,com_2phase
+        !        wt =wt+w0(i)
+        !    end do
             
             !!write(*,*)(log(wt))
-    !        lumda =1.0d0 -log(wt)
-    !        if (lumda >= 1.0d0) then
-    !            phase_judge(ii) = 1
-    !            if (z0(1) > z0(2) +z0(3)+z0(4)) then
-    !                V0 = 0.0d0
-    !                L0 = 1.0d0 - V0
-    !                phase(ii) = 1 !液相のみ
-    !            else
-    !                V0 = 1.0d0
-    !                L0 = 1.0d0 - V0
-    !                phase(ii) = 3 !気相のみ
+        !    lumda =1.0d0 -log(wt)
+        !    if (lumda >= 1.0d0) then
+        !        phase_judge(ii) = 1
+        !        if (z0(1) > z0(2) +z0(3)+z0(4)) then
+        !            V0 = 0.0d0
+        !            L0 = 1.0d0 - V0
+        !            phase(ii) = 1 !液相のみ
+        !        else
+        !            V0 = 1.0d0
+        !            L0 = 1.0d0 - V0
+        !            phase(ii) = 3 !気相のみ
             !        !write(*,*) V0
-    !            end if
-    !        else
-    !            phase_judge(ii) = 2
-    !            phase(ii) = 2 !2相
-    !            v0 = z0(2) + z0(3) + z0(4)
-    !            L0 = 1.0d0 - v0
-    !            if (z0(1) >= (z0(2)+z0(3)+z0(4))) then !液相から気相が出てくるパターン
-    !                do i=1,com_2phase
-    !                    if (z0(i) == 0d0) then
-    !                        k0(i) = 1.0d0
-    !                        lnk0(i) = log(k0(i))
-    !                    else
-    !                        k0(i) = w0(i) / z0(i)
-    !                        lnk0(i) = log(k0(i))
-    !                    end if
-    !                end do
-    !            else !気相から液相が出てくるパターン
-    !                do i=1,com_2phase
-    !                    if (z0(i)== 0.0d0) then
-    !                        k0(i) = 5.0
-    !                        lnk0(i) = log(k0(i))
-    !                    else
-    !                        k0(i) = z0(i) / w0(i)
-    !                        lnk0(i) = log(k0(i))
-    !                    end if
-    !                end do
-    !            end if
-    !        end if
-    !        do i=1,com_2phase
-    !            lnk(i,ii) = lnk0(i)
-    !        end do
+        !        end if
+        !    else
+        !        phase_judge(ii) = 2
+        !        phase(ii) = 2 !2相
+        !        v0 = z0(2) + z0(3) + z0(4)
+        !        L0 = 1.0d0 - v0
+        !        if (z0(1) >= (z0(2)+z0(3)+z0(4))) then !液相から気相が出てくるパターン
+        !            do i=1,com_2phase
+        !                if (z0(i) == 0d0) then
+        !                    k0(i) = 1.0d0
+        !                    lnk0(i) = log(k0(i))
+        !                else
+        !                    k0(i) = w0(i) / z0(i)
+        !                    lnk0(i) = log(k0(i))
+        !                end if
+        !            end do
+        !        else !気相から液相が出てくるパターン
+        !            do i=1,com_2phase
+        !                if (z0(i)== 0.0d0) then
+        !                    k0(i) = 5.0
+        !                    lnk0(i) = log(k0(i))
+        !                else
+        !                    k0(i) = z0(i) / w0(i)
+        !                    lnk0(i) = log(k0(i))
+        !                end if
+        !            end do
+        !        end if
+        !    end if
+        !    do i=1,com_2phase
+        !        lnk(i,ii) = lnk0(i)
+        !    end do
 
             
-    !            write(30,*) ii,'grid',phase_judge(ii),'phase'
-    !    end do
+        !        write(*,*) ii,'grid',phase_judge(ii),'phase'
+        end do
         
         
         !!mainの流動計算

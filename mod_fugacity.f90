@@ -88,22 +88,37 @@ module mod_fugacity
         
         !!気相のフガシティ係数
         C_V = z_factor-B_V
-        
+        write(*,*) 'e'
         do j=1,com_2phase
+            write(*,*) 'i'
             call residualvectorset3(com_2phase,sigma)
+            write(*,*) 'u'
             D_V(j)=b(j)*(z_factor-1.0d0)/b_mix_V
+            !call outxs(D_V,kakuninn)
+            
+            write(*,*) 'k'
             do i=1,com_2phase
-                sigma=sigma+y(i)*(1.0d0-bic(j,i))*dsqrt(a(j)*a(i))
+                sigma=sigma+y(i)*(1.0d0-bic(j,i))*sqrt(a(j)*a(i))
+                !call out_diffsx(sigma,kaku)
+                !write(*,*) kaku
             end do
-            E_V(j)=(A_V/(2.0d0*dsqrt(2.0d0)*B_V))*((2.0d0/a_mix_V)*sigma-b(j)/b_mix_V)
+            write(*,*) 's'
+            E_V(j)=(A_V/(2.0d0*sqrt(2.0d0)*B_V))*((2.0d0/a_mix_V)*sigma-b(j)/b_mix_V)!?ここ？2成分目が計算できていない？
+            !#TODOよくわからないからサブルーチンじゃなくて普通に書く？
+            write(*,*) 'n'
+            call outxs(E_V,kakuninn)
+            write(*,*) kakuninn
         end do
-        G_V=(z_factor+B_V*(1.0d0+dsqrt(2.0d0)))/(z_factor+B_V*(1.0d0-dsqrt(2.0d0)))
+        
+        G_V=(z_factor+B_V*(1.0d0+sqrt(2.0d0)))/(z_factor+B_V*(1.0d0-sqrt(2.0d0)))
         do j=1,com_2phase
             lnfai_V(j)=D_V(j)-log(C_V)-E_V(j)*log(G_V)
         end do
+        
         call outxs(lnfai_V,kakuninn)
         !write(*,*) kakuninn(1),kakuninn(4)
         !write(*,*) z_factor0
+        write(*,*) 'o'
         
     end subroutine
     
