@@ -665,7 +665,7 @@ program main
         write(85+i,*) wc(11,i)
         write(90+i,*) (Nm(2,i)-Nm2_ini)*dx*dy*dz*(1.0d0-fai000(i))
         write(95+i,*) (Nm(4,i)-Nm4_ini)*dx*dy*dz*(1.0d0-fai000(i))
-        !write(*,*) fai000(i)!#TODO鉱物反応起きていない！！！！ 
+        !write(*,*) fai000(i)!#TODO鉱物のモル数の変化おかしい、式をしっかり確認、SiO2おかしいかも 
 
     end do
         

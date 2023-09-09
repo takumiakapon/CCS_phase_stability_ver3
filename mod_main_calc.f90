@@ -673,7 +673,7 @@ module mod_main_calc
         do i=1,n
             do j=1,com_all
                 call residualvectorset3(n*eq+q_judge,rs_sum(j,i))
-                do jj=1,chemi
+                do jj=1,chemi+mine
                     rs_sum(j,i)=rs_sum(j,i)+rs(jj,i)*chemi_mat(jj,j)
                 end do
             end do
