@@ -12,13 +12,13 @@ module mod_main_calc
 
     contains
     subroutine main_calc(V0,lnk0,Nc0,Nc0old,Nm0,Nm0old,Nmini,P0,P0old,Pb0,fai0,q_judge,phase_judge,phase,&
-                        Swd,krgd,krwd,chemi_mat,g)
+                        Swd,krgd,krwd,Sw00,wc0,chemi_mat,g)
         implicit none
         integer,intent(inout)::q_judge,phase_judge(n),phase(n)
         real(8),intent(inout)::Pb0,Nmini(com_mine),chemi_mat(chemi+mine,com_all)
-        real(8),intent(inout),dimension(n)::V0,P0,P0old,fai0
+        real(8),intent(inout),dimension(n)::V0,P0,P0old,fai0,Sw00
         real(8),intent(inout),dimension(com_2phase,n)::lnk0
-        real(8),intent(inout),dimension(com_2phase+com_ion,n)::Nc0,Nc0old
+        real(8),intent(inout),dimension(com_2phase+com_ion,n)::Nc0,Nc0old,wc0
         real(8),intent(inout),dimension(com_mine,n)::Nm0,Nm0old
         real(8),intent(in),dimension(21)::Swd,krgd,krwd
         type(diffs),allocatable,intent(out)::g(:)
@@ -47,7 +47,7 @@ module mod_main_calc
         type(diffs)::q,MD_injection_d,T_L(com_2phase+com_ion,n),T_V(com_2phase,n)
 
         !化学反応
-        real(8)::ks(chemi+mine),ke(chemi),km(mine),wc0(com_2phase+com_ion,n),theta0(chemi+mine,n),min0
+        real(8)::ks(chemi+mine),ke(chemi),km(mine),theta0(chemi+mine,n),min0
         real(8),allocatable,dimension(:)::w10,w20,w30,w40,w50,w60,w70,w80,w90,w100,w110,w120,w130,w140
         !real(8),allocatable,dimension(:)::Q10,Q20,Q30,Q40,Q50,Q60,Q70,Q80,Q90,Q100
         real(8),allocatable,dimension(:)::theta10,theta20,theta30,theta40,theta50,theta60,theta70,theta80,theta90,theta100
@@ -470,7 +470,7 @@ module mod_main_calc
         !!化学反応======================================
         !!速度定数[mol/m^3/s]
         do i=1,chemi
-            ks(i) =1.0d0*10.0d0**(-3.0d0) !化学反応
+            ks(i) =1.0d0*10.0d0**(-1.0d0) !化学反応
         end do
         ks(6)=10.0d0**(-9.12d0) !アノーサイト
         ks(7)=10.0d0**(-12.0d0)!10.0d0**(-12.7d0) !エンスタタイト
@@ -769,6 +769,7 @@ module mod_main_calc
         if (q_judge == 1) then
             g(n*eq+q_judge) = q_input - q*MD_injection_d !!坑井式
         end if
+        Sw00=Sw0
 
         !call outxs(rach,kakuninn)
         !write(*,*) kakuninn

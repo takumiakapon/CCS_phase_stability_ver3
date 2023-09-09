@@ -198,13 +198,13 @@ module mod_phase_stability_analysis
             y(i) = w(i) /wt
         end do
         call outxs(y,kakuninn)
-        write(*,*) sum(kakuninn)
+        !write(*,*) sum(kakuninn)
         
         !!液相のモル分率
         do i=1,com_2phase
             call residualvectorset4(z0(i),com_2phase,x(i))
         end do
-        write(*,*) 'a'
+        !write(*,*) 'a'
         !call vapor_fugacity(y,lnfai_V,P0) !#TODOこれ
         Tc(1) = 647.30d0
         Tc(2) = 304.2d0
@@ -263,26 +263,27 @@ module mod_phase_stability_analysis
         !write(*,*) z_factor0
         !!気相のフガシティ係数
         C_V = z_factor-B_V
-        write(*,*) 'e'
+        !write(*,*) 'e'
         do j=1,com_2phase
-            write(*,*) 'i'
+        !    write(*,*) 'i'
             call residualvectorset3(com_2phase,sigma)
-            write(*,*) 'u'
+            call residualvectorset3(com_2phase,E_V(i))
+        !    write(*,*) 'u'
             D_V(j)=b(j)*(z_factor-1.0d0)/b_mix_V
             !call outxs(D_V,kakuninn)
             
-            write(*,*) 'k'
+        !    write(*,*) 'k'
             do i=1,com_2phase
                 sigma=sigma+y(i)*(1.0d0-bic(j,i))*sqrt(a(j)*a(i))
                 !call out_diffsx(sigma,kaku)
                 !write(*,*) kaku
             end do
-            write(*,*) 's'
+        !    write(*,*) 's'
             E_V(j)=(A_V/(2.0d0*sqrt(2.0d0)*B_V))*((2.0d0/a_mix_V)*sigma-b(j)/b_mix_V)!?ここ？2成分目が計算できていない？
-            !#TODOよくわからないからサブルーチンじゃなくて普通に書く？
-            write(*,*) 'n'
+            
+        !    write(*,*) 'n'
             call outxs(E_V,kakuninn)
-            write(*,*) kakuninn
+        !    write(*,*) kakuninn
         end do
         
         G_V=(z_factor+B_V*(1.0d0+sqrt(2.0d0)))/(z_factor+B_V*(1.0d0-sqrt(2.0d0)))
@@ -293,10 +294,10 @@ module mod_phase_stability_analysis
         call outxs(lnfai_V,kakuninn)
         !write(*,*) kakuninn(1),kakuninn(4)
         !write(*,*) z_factor0
-        write(*,*) 'o'
+        !write(*,*) 'o'
 
 
-        write(*,*) 'i'
+        !write(*,*) 'i'
         call liquid_fugacity(lnfai_L,P0)
         call outxs(lnfai_V,kakuninn)
         !write(*,*) kakuninn
