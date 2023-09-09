@@ -401,8 +401,9 @@ module mod_ini_chemical
         write(11,*) theta0
         !    
         !!化学反応の反応速度
-        min0=100000000000.0d0
+        
         do i=1,chemi
+            min0=100000000000.0d0
             call residualvectorset4(min0,eq,min)
             if (theta0(i) < 1.0d0) then !順反応
                 do j=2,com_2phase+com_ion

@@ -35,13 +35,13 @@ program main
     
     !main計算
     integer,dimension(n)::phase_judge,phase
-    real(8),dimension(n)::V,L,P,Pold
+    real(8),dimension(n)::V,L,P,Pold,fai000
     real(8),dimension(com_2phase,n)::lnk
     real(8),dimension(com_2phase+com_ion,n)::Nc,Ncold,z
     real(8),dimension(com_mine,n)::Nm,Nmold
-    real(8)::Pb0,fai(n),fai0,Nmini(com_mine)
+    real(8)::Pb0,fai0,Nmini(com_mine)
     real(8),dimension(21)::Swd,krgd,krwd
-    real(8),allocatable,dimension(:)::Sw
+    real(8),allocatable,dimension(:)::Sw,fai
     real(8),allocatable,dimension(:,:)::wc
     
     
@@ -51,7 +51,7 @@ program main
     allocate(amat(com_2phase,com_2phase),bmat(com_2phase),z0(com_2phase+com_ion),k0(com_2phase),lnk0(com_2phase)&
         ,x0(com_2phase),y0(com_2phase+com_ion),w0(com_2phase),alpha0(com_2phase),cmat(com_2phase+1,com_2phase+1)&
         ,dmat(com_2phase+1),chemi_mat(chemi+mine,com_all),emat(eq,eq),fmat(eq),gmat(n*eq,n*eq),hmat(n*eq)&
-        ,theta0(chemi+mine),Sw(n),wc(com_2phase+com_ion,n))
+        ,theta0(chemi+mine),Sw(n),wc(com_2phase+com_ion,n),fai(n))
      
     !!相対浸透率のテーブルデータのインプット
     do i=1,21
@@ -576,7 +576,7 @@ program main
         q_judge = 1 !!とりあえず流量制御で固定
 
         do iteration=1,100
-            call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,Nmini,P,Pold,Pb0,fai,q_judge,phase_judge,phase,&
+            call main_calc(V,lnk,Nc,Ncold,Nm,Nmold,Nmini,P,Pold,Pb0,fai,fai000,q_judge,phase_judge,phase,&
                             Swd,krgd,krwd,Sw,wc,chemi_mat,fxs)
 
             deallocate(gmat,hmat)
@@ -663,8 +663,9 @@ program main
         write(75+i,*) wc(8,i)
         write(80+i,*) wc(10,i)
         write(85+i,*) wc(11,i)
-        write(90+i,*) (Nm(2,i)-Nm2_ini)*dx*dy*dz*(1.0d0-fai(i))
-        write(95+i,*) (Nm(4,i)-Nm4_ini)*dx*dy*dz*(1.0d0-fai(i))
+        write(90+i,*) (Nm(2,i)-Nm2_ini)*dx*dy*dz*(1.0d0-fai000(i))
+        write(95+i,*) (Nm(4,i)-Nm4_ini)*dx*dy*dz*(1.0d0-fai000(i))
+        !write(*,*) fai000(i)!#TODO鉱物反応起きていない！！！！ 
 
     end do
         

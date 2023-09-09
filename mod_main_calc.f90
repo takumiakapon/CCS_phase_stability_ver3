@@ -11,12 +11,12 @@ module mod_main_calc
     integer,private::i,j,jj
 
     contains
-    subroutine main_calc(V0,lnk0,Nc0,Nc0old,Nm0,Nm0old,Nmini,P0,P0old,Pb0,fai0,q_judge,phase_judge,phase,&
+    subroutine main_calc(V0,lnk0,Nc0,Nc0old,Nm0,Nm0old,Nmini,P0,P0old,Pb0,fai00,fai000,q_judge,phase_judge,phase,&
                         Swd,krgd,krwd,Sw00,wc0,chemi_mat,g)
         implicit none
         integer,intent(inout)::q_judge,phase_judge(n),phase(n)
         real(8),intent(inout)::Pb0,Nmini(com_mine),chemi_mat(chemi+mine,com_all)
-        real(8),intent(inout),dimension(n)::V0,P0,P0old,fai0,Sw00
+        real(8),intent(inout),dimension(n)::V0,P0,P0old,fai00,Sw00,fai000
         real(8),intent(inout),dimension(com_2phase,n)::lnk0
         real(8),intent(inout),dimension(com_2phase+com_ion,n)::Nc0,Nc0old,wc0
         real(8),intent(inout),dimension(com_mine,n)::Nm0,Nm0old
@@ -39,7 +39,7 @@ module mod_main_calc
         real(8)::beta_v,myu_H2O_20,sa,sisuu,myu_L_normal,Vc(com_2phase),Tc(com_2phase),Pc(com_2phase),myu_c(com_2phase)
         real(8)::av_0,av_1,av_2,av_3,av_4
         type(diffs)::myu_L(n),Pc_ave_V(n),Tc_ave_V(n),Vc_ave_V(n),zeta(n),ro_r_V(n),myu_V_SC(n),myu_V(n),krg(n),krw(n)
-        real(8),allocatable,dimension(:)::Sw0
+        real(8),allocatable,dimension(:)::Sw0,fai0
         type(diffs)::faimine(n),fai(n),kk(n),ramda
         real(8)::faimineold(n),faiold(n),NmMD(com_mine)
         
@@ -393,8 +393,8 @@ module mod_main_calc
         NmMD(4)=Nm4_MD
         NmMD(5)=Nm5_MD
         do i=1,n
-            call residualvectorset4(fai0(i),n*eq+q_judge,faimine(i))
-            faimineold(i)=fai0(i)
+            call residualvectorset4(fai00(i),n*eq+q_judge,faimine(i))
+            faimineold(i)=fai00(i)
             do j=1,com_mine
                 faimine(i)=faimine(i)-(Nm(j,i)-Nmini(j))/NmMD(j)
                 faimineold(i)=faimineold(i)-(Nm0old(j,i)-Nmini(j))/NmMD(j)
@@ -402,7 +402,10 @@ module mod_main_calc
             fai(i)=faimine(i)*(1.0d0+Cr*(P(i)-iniPressure))
             faiold(i)=faimineold(i)*(1.0d0+Cr*(P0old(i)-iniPressure))            
         end do
+        call outxs(fai,fai0)
         
+        fai000=fai0
+        !write(*,*) fai000
 
         !!絶対浸透率
         do i=1,n
@@ -470,7 +473,7 @@ module mod_main_calc
         !!化学反応======================================
         !!速度定数[mol/m^3/s]
         do i=1,chemi
-            ks(i) =1.0d0*10.0d0**(-1.0d0) !化学反応
+            ks(i) =1.0d0*10.0d0**(-0.0d0) !化学反応
         end do
         ks(6)=10.0d0**(-9.12d0) !アノーサイト
         ks(7)=10.0d0**(-12.0d0)!10.0d0**(-12.7d0) !エンスタタイト
@@ -627,6 +630,7 @@ module mod_main_calc
             !H2O = H+ + OH-
             min0=10000000000000000.0d0
             do j=1,chemi
+                
                 call residualvectorset4(min0,n*eq+q_judge,min)
                 if (theta0(j,i) < 1.0d0) then !順反応
                     do jj=1,com_2phase+com_ion
