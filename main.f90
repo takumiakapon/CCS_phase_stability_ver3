@@ -49,8 +49,7 @@ program main
     call file_open
     
     allocate(amat(com_2phase,com_2phase),bmat(com_2phase),z0(com_2phase+com_ion),k0(com_2phase),lnk0(com_2phase)&
-        ,x0(com_2phase),y0(com_2phase+com_ion),w0(com_2phase),alpha0(com_2phase),cmat(com_2phase+1,com_2phase+1)&
-        ,dmat(com_2phase+1),chemi_mat(chemi+mine,com_all),emat(eq,eq),fmat(eq),gmat(n*eq,n*eq),hmat(n*eq)&
+        ,x0(com_2phase),y0(com_2phase+com_ion),w0(com_2phase),alpha0(com_2phase),chemi_mat(chemi+mine,com_all)&
         ,theta0(chemi+mine),Sw(n),wc(com_2phase+com_ion,n),fai(n))
      
     !!相対浸透率のテーブルデータのインプット
@@ -168,7 +167,7 @@ program main
             exit
         end if
     end do
-    
+    deallocate(amat,bmat)
     wt =0.0d0
     do i=1,com_2phase
         wt =wt+w0(i)
@@ -220,7 +219,7 @@ program main
     !write(*,*) phase_judge0,'phase'
     
     
-    
+    allocate(cmat(com_2phase+1,com_2phase+1),dmat(com_2phase+1))
     if (phase_judge0 == 2) then
         do iteration = 1,100
             call ini_fla(P0,z0,lnk0,v0,z_factor0,fxs)
@@ -254,7 +253,7 @@ program main
         end do
     end if
 
-    
+    deallocate(cmat,dmat)
     
     
     if (phase_judge0 == 2) then !2相
@@ -285,7 +284,7 @@ program main
     !write(*,*) Nc0
     
     !!ここまでは良さそう
-    
+    allocate(emat(eq,eq),fmat(eq))
     !液相がある場合、電離
     if (phase_judge0 == 2 .or. phase0 == 1) then
         do time =1,100!00 !time iteration
@@ -379,7 +378,7 @@ program main
         end do
     end if
     
-    deallocate(cmat,dmat,emat,fmat)
+    deallocate(emat,fmat)
     
     
     write(*,*) Nc0
@@ -434,9 +433,9 @@ program main
 
     phase_judge=2
     !!ようやくメイン計算！！！
-    
+    allocate(amat(com_2phase,com_2phase),bmat(com_2phase),gmat(n*eq,n*eq),hmat(n*eq))
     do year=1,1!3!50!000
-    do day =1,150!0
+    do day =1,5!150!0
     do hour =1,24    
     !    !!相安定解析
         !do ii=1,n !gridごとに相安定性解析するよ
@@ -568,6 +567,7 @@ program main
         
         
         !!mainの流動計算
+    
         if (year < 4) then
             q_judge = 1 !流量制御
         else
@@ -674,6 +674,7 @@ program main
     end do !year loop
     
         
+    deallocate(amat,bmat,gmat,hmat)
     
     
     
